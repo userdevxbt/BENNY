@@ -1,0 +1,36 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# SHDWXBT - Git Attributes Configuration
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Linguist - Marcar arquivos como gerados para não mostrar no diff
+# Isso dificulta análise de código no GitHub
+
+# Metodologia - Marcar como binário/gerado
+smc-precision-engine.js linguist-generated=true
+master-precision-system.js linguist-generated=true
+fibonacci-precision-engine.js linguist-generated=true
+institutional-engine.js linguist-generated=true
+ml-adaptive-engine.js linguist-generated=true
+confluence-thermometer.js linguist-generated=true
+technical-analysis.js linguist-generated=true
+advanced-analysis.js linguist-generated=true
+shdwxbt-context-library.js linguist-generated=true
+ai-signal-validator.js linguist-generated=true
+smart-risk-manager.js linguist-generated=true
+institutional-scanner.js linguist-generated=true
+auto-scanner.js linguist-generated=true
+hot-signals.js linguist-generated=true
+opportunities-service.js linguist-generated=true
+backtester.js linguist-generated=true
+
+# Detectar como vendored (não aparece em análises)
+*.min.js linguist-vendored
+*.bundle.js linguist-vendored
+
+# Não mostrar diff de arquivos grandes
+*.js binary -diff
+*.sql binary -diff
+
+# Line endings
+* text=auto
+*.sh text eol=lf

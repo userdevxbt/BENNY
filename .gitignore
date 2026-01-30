@@ -1,0 +1,13 @@
+// Análise completa de um ativo
+const analysis = window.SMCPrecisionEngine.analyzeComplete(candles, 'BTCUSDT');
+
+// Pegar recomendação de entrada
+const entry = window.SMCPrecisionEngine.generateEntryRecommendation(
+    candles, 'BTCUSDT', 'LONG'
+);
+
+// Score de confluência SMC
+const score = window.SMCPrecisionEngine.getSMCConfluenceScore(candles);config.local.js
+*.log
+.DS_Store
+node_modules/

@@ -1,0 +1,73 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# SHDWXBT / BENNY - Cloudflare Pages Security Headers
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Headers globais para todas as páginas
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+  Content-Security-Policy: default-src 'self' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://unpkg.com https://cdn.jsdelivr.net https://esm.sh https://s3.tradingview.com https://registry.walletconnect.com https://registry.walletconnect.org https://*.walletconnect.com https://*.walletconnect.org; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https: wss: ws: https://*.walletconnect.com https://*.walletconnect.org https://registry.walletconnect.com https://rpc.walletconnect.com https://relay.walletconnect.com https://pulse.walletconnect.org; frame-src https://s.tradingview.com https://dexscreener.com; worker-src 'self' blob:; child-src 'self' blob:;
+  X-Robots-Tag: noindex, nofollow, noarchive, nosnippet
+
+# Bloquear acesso direto à pasta dist/
+/dist/*
+  X-Robots-Tag: noindex, nofollow, noarchive
+  Cache-Control: no-store, no-cache, must-revalidate
+  X-Content-Type-Options: nosniff
+
+# Proteger arquivos JavaScript sensíveis
+/*.js
+  Content-Type: application/javascript; charset=utf-8
+  Cache-Control: no-store, no-cache, must-revalidate
+  X-Content-Type-Options: nosniff
+  X-Robots-Tag: noindex, nofollow, noarchive
+
+# Proteger arquivos de metodologia - headers mais restritivos
+/smc-precision-engine.js
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+  
+/master-precision-system.js
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+  
+/fibonacci-precision-engine.js
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+
+/institutional-engine.js
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+  
+/ml-adaptive-engine.js
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+  
+/confluence-thermometer.js
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+
+/technical-analysis.js
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+
+/advanced-analysis.js
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+
+/shdwxbt-context-library.js
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+
+/ai-signal-validator.js
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+
+# HTML - Sem cache
+/*.html
+  Cache-Control: no-cache, no-store, must-revalidate
+  Pragma: no-cache
+  Expires: 0

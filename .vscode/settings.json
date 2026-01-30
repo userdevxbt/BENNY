@@ -1,0 +1,49 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "git init": true,
+        "git remote": true,
+        "wrangler": true,
+        "npx wrangler": true,
+        "git add": true,
+        "git commit": true,
+        "npm install": true,
+        "supabase": true,
+        "psql": true,
+        "clear": true,
+        "yes": true
+    },
+    
+    // =====================================================
+    // Configurar SQL para PostgreSQL (Supabase)
+    // Desabilita o linter MSSQL que causa falsos positivos
+    // =====================================================
+    
+    // Associar arquivos .sql ao PostgreSQL
+    "files.associations": {
+        "*.sql": "postgres"
+    },
+    
+    // Desabilitar IntelliSense MSSQL para este workspace
+    "mssql.intelliSense.enableIntellisense": false,
+    
+    // SQLTools como formatter padrão para SQL
+    "[sql]": {
+        "editor.defaultFormatter": "mtxr.sqltools"
+    },
+    
+    // SQLTools configurações
+    "sqltools.useNodeRuntime": true,
+    "sqltools.highlightQuery": true,
+    
+    // =====================================================
+    // Deno para Supabase Edge Functions
+    // =====================================================
+    "deno.enable": true,
+    "deno.lint": true,
+    "deno.unstable": true,
+    "deno.enablePaths": ["supabase/functions"],
+    "deno.config": "supabase/functions/deno.json",
+    "[typescript]": {
+        "editor.defaultFormatter": "denoland.vscode-deno"
+    }
+}

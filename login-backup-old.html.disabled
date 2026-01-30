@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="en" class="dark"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BENNY TERMINAL | 7 Days Free Trial</title>
+
+<!-- Security Headers -->
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="X-Frame-Options" content="DENY">
+<meta http-equiv="X-XSS-Protection" content="1; mode=block">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+
+<!-- 🛡️ Security Shield - MUST LOAD FIRST -->
+<script src="security-shield.js"></script>
+
+<!-- Fonts: Inter & JetBrains Mono -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<!-- Supabase Client -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Ethers.js v5 (UMD) -->
+<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+<!-- Wallet Connectors (MetaMask, Trust, OneKey, WalletConnect) -->
+<script src="wallet-connectors.js"></script>
+<script>
+tailwind.config = {
+theme: {
+extend: {
+fontFamily: {
+sans: ['Inter', 'sans-serif'],
+mono: ['JetBrains Mono', 'monospace'],
+},
+animation: {
+'float': 'float 6s ease-in-out infinite',
+'scan': 'scan 2s linear infinite',
+'text-shimmer': 'textShimmer 2.5s linear infinite',
+'shine': 'shine 1s ease-in-out',
+},
+keyframes: {
+float: {
+'0%, 100%': { transform: 'translateY(0) rotateX(0)' },
+'50%': { transform: 'translateY(-10px) rotateX(2deg)' },
+},
+scan: {
+'0%': { transform: 'translateY(-100%)' },
+'100%': { transform: 'translateY(200%)' },
+},
+textShimmer: {
+'0%': { backgroundPosition: '200% center' },
+'100%': { backgroundPosition: '-200% center' },
+},
+shine: {
+'0%': { transform: 'translateX(-150%)' },
+'100%': { transform: 'translateX(150%)' }
+}
+}
+}
+}
+}
+</script>
+<style>
+body {
+background-color: #050505;
+color: #fff;
+overflow: hidden;
+-webkit-font-smoothing: antialiased;
+}
+/* Glass / Holographic Badge */
+.credential-card {
+background: rgba(10, 10, 10, 0.6);
+-webkit-backdrop-filter: blur(24px);
+backdrop-filter: blur(24px);
+box-shadow:
+0 0 0 1px rgba(255, 255, 255, 0.08),
+0 20px 40px -10px rgba(0, 0, 0, 0.8),
+inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+transform-style: preserve-3d;
+perspective: 1000px;
+}
+.noise-bg {
+background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+mix-blend-mode: overlay;
+}
+.shimmer-text {
+background: linear-gradient(to right, #fde047 20%, #f97316 30%, #facc15 40%, #fde047 50%);
+background-size: 200% auto;
+-webkit-background-clip: text;
+background-clip: text;
+color: transparent;
+}
+/* Sim Chip Shine */
+.sim-chip {
+background: linear-gradient(135deg, #eab308 0%, #fde047 50%, #eab308 100%);
+position: relative;
+overflow: hidden;
+}
+.sim-chip::after {
+content: '';
+position: absolute;
+inset: 0;
+background: linear-gradient(to bottom right, transparent 40%, rgba(255,255,255,0.8) 50%, transparent 60%);
+animation: chipShine 4s infinite;
+}
+@keyframes chipShine {
+0% { transform: translateX(-150%) translateY(-150%); }
+20% { transform: translateX(150%) translateY(150%); }
+100% { transform: translateX(150%) translateY(150%); }
+}
+</style>
+
+<!-- Web3Modal z-index override - garante que apareça na frente -->
+<style>
+/* Web3Modal precisa ter z-index maior que tudo */
+#WEB3_CONNECT_MODAL_ID,
+.web3modal-modal-lightbox,
+.web3modal-modal-card,
+.web3modal-provider-container {
+    z-index: 999999 !important;
+}
+
+/* Overlay do Web3Modal */
+.web3modal-overlay {
+    z-index: 999998 !important;
+}
+
+/* Garantir que não haja pointer-events bloqueando */
+body.web3modal-open {
+    overflow: hidden;
+}
+
+/* ====== WALLET MODAL ====== */
+.wallet-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 999999;
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+}
+
+.wallet-modal.active {
+    display: flex !important;
+    animation: modalFadeIn 0.3s ease-out;
+}
+
+@keyframes modalFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes modalSlideIn {
+    from { 
+        opacity: 0;
+        transform: scale(0.9) translateY(20px);
+    }
+    to { 
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes glowPulse {
+    0%, 100% { 
+        box-shadow: 
+            0 0 20px rgba(255, 255, 255, 0.05),
+            0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+    50% { 
+        box-shadow: 
+            0 0 30px rgba(255, 255, 255, 0.1),
+            0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+}
+
+.wallet-container {
+    max-width: 480px;
+    width: 92%;
+    background: rgba(39, 39, 42, 0.95);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    backdrop-filter: blur(40px) saturate(180%);
+    border-radius: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 2rem;
+    position: relative;
+    animation: modalSlideIn 0.4s ease-out;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+}
+
+/* Glass reflection effect */
+.wallet-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.08) 0%,
+        rgba(255, 255, 255, 0.02) 50%,
+        transparent 100%
+    );
+    border-radius: 1.5rem 1.5rem 0 0;
+    pointer-events: none;
+}
+
+/* Subtle border glow */
+.wallet-container::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.15) 0%,
+        rgba(255, 255, 255, 0.05) 50%,
+        rgba(255, 255, 255, 0.1) 100%
+    );
+    border-radius: 1.6rem;
+    z-index: -1;
+}
+
+@keyframes gradientMove {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.wallet-header {
+    text-align: center;
+    margin-bottom: 1.75rem;
+    position: relative;
+    z-index: 1;
+}
+
+.wallet-header h3 {
+    color: white;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    animation: textShimmer 3s linear infinite;
+}
+
+.wallet-header p {
+    color: rgba(161, 161, 170, 0.9);
+    font-size: 0.875rem;
+    letter-spacing: 0.02em;
+}
+
+.wallet-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.875rem;
+    position: relative;
+    z-index: 1;
+}
+
+.wallet-option {
+    padding: 1.25rem 1rem;
+    background: rgba(39, 39, 42, 0.6);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 1rem;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.wallet-option::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+        circle at 50% 0%,
+        rgba(168, 85, 247, 0.15) 0%,
+        transparent 60%
+    );
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.wallet-option:hover {
+    background: rgba(63, 63, 70, 0.8);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 
+        0 12px 30px rgba(0, 0, 0, 0.4),
+        0 4px 12px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.wallet-option:hover::before {
+    opacity: 1;
+}
+
+.wallet-option:active {
+    transform: translateY(-2px) scale(0.98);
+}
+
+.wallet-icon {
+    width: 52px;
+    height: 52px;
+    margin: 0 auto 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 0.875rem;
+    transition: all 0.3s ease;
+}
+
+.wallet-option:hover .wallet-icon {
+    transform: scale(1.1);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.wallet-icon img {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+    display: block;
+}
+
+.wallet-name {
+    color: white;
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 0.2rem;
+    transition: color 0.3s ease;
+}
+
+.wallet-option:hover .wallet-name {
+    color: #ffffff;
+}
+
+.wallet-desc {
+    color: rgba(161, 161, 170, 0.8);
+    font-size: 0.75rem;
+    letter-spacing: 0.02em;
+}
+
+.wallet-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(39, 39, 42, 0.8);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 10;
+}
+
+.wallet-close:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.5);
+    color: #f87171;
+    transform: rotate(90deg) scale(1.1);
+}
+
+/* WalletConnect destacado como opção universal */
+.wallet-connect-option {
+    background: linear-gradient(135deg, rgba(30, 58, 95, 0.8) 0%, rgba(39, 39, 42, 0.8) 100%);
+    border: 1px solid rgba(59, 153, 252, 0.35);
+    grid-column: span 2;
+    position: relative;
+    overflow: hidden;
+}
+
+.wallet-connect-option::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        135deg,
+        rgba(59, 153, 252, 0.15) 0%,
+        transparent 50%,
+        rgba(168, 85, 247, 0.1) 100%
+    );
+    opacity: 1;
+}
+
+/* Animated shine effect */
+.wallet-connect-option::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+        45deg,
+        transparent 40%,
+        rgba(255, 255, 255, 0.1) 50%,
+        transparent 60%
+    );
+    animation: wcShine 4s ease-in-out infinite;
+}
+
+@keyframes wcShine {
+    0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+    50% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+    100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+}
+
+.wallet-connect-option:hover {
+    border-color: #3B99FC;
+    box-shadow: 
+        0 12px 35px rgba(59, 153, 252, 0.35),
+        0 4px 15px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    transform: translateY(-4px) scale(1.01);
+}
+
+.wallet-connect-option .wallet-desc {
+    color: #3B99FC;
+    font-weight: 500;
+}
+
+.wallet-connect-option .wallet-icon {
+    background: rgba(59, 153, 252, 0.15);
+}
+
+.wallet-connect-option:hover .wallet-icon {
+    background: rgba(59, 153, 252, 0.25);
+}
+
+/* Mobile: reorganizar grid para 1 coluna */
+@media (max-width: 480px) {
+    .wallet-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .wallet-connect-option {
+        grid-column: span 1;
+    }
+    
+    .wallet-container {
+        width: 95%;
+        padding: 1.5rem;
+        border-radius: 1.25rem;
+    }
+    
+    .wallet-header h3 {
+        font-size: 1.25rem;
+    }
+    
+    .wallet-option {
+        padding: 1rem;
+    }
+}
+</style>
+
+</head>
+<body class="h-screen w-full flex items-center justify-center font-sans antialiased selection:bg-orange-500/30">
+
+<!-- ====== WALLET SELECTION MODAL ====== -->
+<div id="walletModal" class="wallet-modal">
+    <div class="wallet-container">
+        <div class="wallet-close" onclick="cancelWalletConnection()">✕</div>
+        
+        <div class="wallet-header">
+            <h3>🐕 Connect to BENNY TERMINAL</h3>
+            <p>Start your 7-day free trial now</p>
+        </div>
+        
+        <div class="wallet-grid">
+            <div class="wallet-option" onclick="handleWalletSelection(connectMetaMask)">
+                <div class="wallet-icon">
+                    <svg viewBox="0 0 40 40" width="48" height="48" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="40" height="40" fill="#FDF2EC"/>
+                        <g clip-path="url(#clip0)">
+                            <path d="M32.1442 31.5512L26.3485 29.8255L21.978 32.4383L18.9285 32.4369L14.5552 29.8255L8.76223 31.5512L7 25.6025L8.76223 19.0002L7 13.4183L8.76223 6.5L17.8143 11.9082H23.092L32.1442 6.5L33.9064 13.4183L32.1442 19.0002L33.9064 25.6025L32.1442 31.5512Z" fill="#FF5C16"/>
+                            <path d="M8.76337 6.50002L17.8156 11.912L17.4557 15.6262L8.76337 6.50002ZM14.5566 25.605L18.5395 28.6391L14.5566 29.8255V25.605ZM18.2212 20.5889L17.4557 15.6287L12.5557 19.0018L12.5531 19.0004V19.0029L12.5683 22.4749L14.5552 20.5891L18.2212 20.5889ZM32.1442 6.50002L23.092 11.912L23.4508 15.6262L32.1442 6.50002ZM26.3512 25.605L22.3681 28.6391L26.3512 29.8255V25.605ZM28.3532 19.0027V19.0003L28.3521 19.0016L23.4521 15.6287L22.6866 20.5889H26.351L28.3393 22.4745L28.3532 19.0027Z" fill="#FF5C16"/>
+                            <path d="M14.5552 29.8255L8.76223 31.5513L7 25.605H14.5552V29.8255ZM18.2198 20.5875L19.3265 27.7585L17.7928 23.7713L12.5658 22.4745L14.5539 20.5877H18.2198V20.5875ZM26.351 29.8255L32.1442 31.5513L33.9064 25.605H26.351V29.8255ZM22.6866 20.5875L21.58 27.7585L23.1135 23.7713L28.3406 22.4745L26.3512 20.5877H22.6866V20.5875Z" fill="#E34807"/>
+                            <path d="M7 25.6025L8.76223 19.0003H12.5517L12.5656 22.4734L17.793 23.7701L19.3265 27.7572L18.5381 28.6353L14.5552 25.6012H7V25.6025ZM33.9064 25.6025L32.1442 19.0003H28.3545L28.3406 22.4734L23.1137 23.7701L21.58 27.7572L22.3681 28.6353L26.3512 25.6012H33.9064V25.6025ZM23.092 11.9082H17.8143L17.4558 15.6224L19.3266 27.7534H21.58L23.4519 15.6224L23.092 11.9082Z" fill="#FF8D5D"/>
+                            <path d="M8.76223 6.5L7 13.4183L8.76223 19.0002H12.5517L17.4543 15.6262L8.76223 6.5ZM17.1246 22.0279H15.4078L14.4731 22.9441L17.7941 23.7675L17.1246 22.0267V22.0279ZM32.1442 6.5L33.9064 13.4183L32.1442 19.0002H28.3545L23.4521 15.6262L32.1442 6.5ZM23.7843 22.0279H25.5036L26.4383 22.9453L23.1135 23.7701L23.7843 22.0265V22.0279ZM21.9766 30.0718L22.3683 28.6377L21.58 27.7596H19.3249L18.5368 28.6377L18.9283 30.0718" fill="#661800"/>
+                            <path d="M21.9766 30.0716V32.4394H18.9285V30.0716H21.9766Z" fill="#C0C4CD"/>
+                            <path d="M14.5566 29.8231L18.931 32.4383V30.0704L18.5393 28.6366L14.5566 29.8231ZM26.3512 29.8231L21.9766 32.4383V30.0704L22.3683 28.6366L26.3512 29.8231Z" fill="#E7EBF6"/>
+                        </g>
+                        <defs>
+                            <clipPath id="clip0">
+                                <rect width="40" height="40" fill="white"/>
+                            </clipPath>
+                        </defs>
+                    </svg>
+                </div>
+                <div class="wallet-name">MetaMask</div>
+                <div class="wallet-desc">Browser Extension</div>
+            </div>
+            
+            <div class="wallet-option" onclick="handleWalletSelection(connectOneKey)">
+                <div class="wallet-icon">
+                    <svg viewBox="0 0 32 32" width="48" height="48" aria-hidden="true">
+                        <rect width="32" height="32" rx="6.66667" fill="#44D62C"/>
+                        <path d="M17.4457 6.7832L12.9945 6.7832L12.2136 9.14446H14.6859L14.6859 14.1182H17.4457V6.7832Z" fill="black"/>
+                        <path fill-rule="evenodd" clip-rule="evenodd" d="M21.0764 20.1378C21.0764 22.9413 18.8037 25.2141 16.0001 25.2141C13.1966 25.2141 10.9238 22.9413 10.9238 20.1378C10.9238 17.3342 13.1966 15.0615 16.0001 15.0615C18.8037 15.0615 21.0764 17.3342 21.0764 20.1378ZM18.7718 20.1378C18.7718 21.6685 17.5309 22.9095 16.0001 22.9095C14.4693 22.9095 13.2284 21.6685 13.2284 20.1378C13.2284 18.607 14.4693 17.366 16.0001 17.366C17.5309 17.366 18.7718 18.607 18.7718 20.1378Z" fill="black"/>
+                    </svg>
+                </div>
+                <div class="wallet-name">OneKey</div>
+                <div class="wallet-desc">Hardware Wallet</div>
+            </div>
+            
+            <div class="wallet-option" onclick="handleWalletSelection(connectTrust)">
+                <div class="wallet-icon">
+                    <svg viewBox="0 0 58 65" width="48" height="54" aria-hidden="true">
+                        <path d="M0 9.38949L28.8907 0V65.0042C8.2545 56.3369 0 39.7248 0 30.3353V9.38949Z" fill="#0500FF"/>
+                        <path d="M57.7822 9.38949L28.8915 0V65.0042C49.5277 56.3369 57.7822 39.7248 57.7822 30.3353V9.38949Z" fill="url(#trust-gradient)"/>
+                        <defs>
+                            <linearGradient id="trust-gradient" x1="51.3615" y1="-4.15293" x2="29.5384" y2="64.5147" gradientUnits="userSpaceOnUse">
+                                <stop offset="0.0211212" stop-color="#0000FF"/>
+                                <stop offset="0.0762423" stop-color="#0094FF"/>
+                                <stop offset="0.163089" stop-color="#48FF91"/>
+                                <stop offset="0.420049" stop-color="#0094FF"/>
+                                <stop offset="0.682886" stop-color="#0038FF"/>
+                                <stop offset="0.902465" stop-color="#0500FF"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <div class="wallet-name">Trust Wallet</div>
+                <div class="wallet-desc">Mobile App</div>
+            </div>
+            
+            <!-- WalletConnect - Universal connector for 300+ wallets -->
+            <div class="wallet-option wallet-connect-option" onclick="handleWalletSelection(connectWalletConnect)">
+                <div class="wallet-icon">
+                    <svg viewBox="0 0 480 480" width="48" height="48" aria-hidden="true">
+                        <rect width="480" height="480" rx="120" fill="#3B99FC"/>
+                        <path d="M141.3 181.5c54.6-53.5 143.1-53.5 197.7 0l6.6 6.4c2.7 2.7 2.7 7 0 9.7l-22.5 22c-1.4 1.3-3.6 1.3-4.9 0l-9-8.9c-38.1-37.3-99.9-37.3-138 0l-9.7 9.5c-1.4 1.3-3.6 1.3-4.9 0l-22.5-22c-2.7-2.7-2.7-7 0-9.7l7.2-7zm244.3 45.5l20 19.6c2.7 2.7 2.7 7 0 9.7l-90.3 88.5c-2.7 2.7-7.2 2.7-9.9 0l-64.1-62.8c-.7-.7-1.8-.7-2.5 0l-64.1 62.8c-2.7 2.7-7.2 2.7-9.9 0L74.5 256.3c-2.7-2.7-2.7-7 0-9.7l20-19.6c2.7-2.7 7.2-2.7 9.9 0l64.1 62.8c.7.7 1.8.7 2.5 0l64.1-62.8c2.7-2.7 7.2-2.7 9.9 0l64.1 62.8c.7.7 1.8.7 2.5 0l64.1-62.8c2.7-2.6 7.1-2.6 9.9 0z" fill="#fff"/>
+                    </svg>
+                </div>
+                <div class="wallet-name">WalletConnect</div>
+                <div class="wallet-desc">300+ Wallets</div>
+            </div>
+            
+            <!-- Any Wallet option for mobile in-app browsers -->
+            <div class="wallet-option" onclick="handleWalletSelection(connectInjected)" id="anyWalletOption">
+                <div class="wallet-icon">
+                    <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" class="text-purple-400">
+                        <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"></path>
+                        <path d="M3 5v14a2 2 0 0 0 2 2h16v-5"></path>
+                        <path d="M18 12a2 2 0 0 0 0 4h4v-4h-4z"></path>
+                    </svg>
+                </div>
+                <div class="wallet-name">Any Wallet</div>
+                <div class="wallet-desc">In-App Browser</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Video Background -->
+    <div class="fixed inset-0 z-0 select-none pointer-events-none">
+        <video id="bg-video" class="w-full h-full object-cover grayscale opacity-40" autoplay="" muted="" loop="" playsinline="" src="blob:https://www.aura.build/376ac726-1437-4952-ade9-c582a9ac4439"></video>
+        <div class="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-black/40"></div>
+        <div class="absolute inset-0 noise-bg z-10"></div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="z-20 flex flex-col w-full h-full p-6 relative items-center justify-center">
+
+        <!-- Lanyard Visual -->
+        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-px h-[50vh] bg-gradient-to-b from-transparent via-white/20 to-white/5 pointer-events-none z-0"></div>
+
+        <!-- Credential Badge -->
+        <div class="credential-card w-[320px] rounded-3xl relative overflow-hidden flex flex-col animate-float group transition-all duration-500" id="card-container">
+            
+            <!-- Top Detail -->
+            <div class="mx-auto w-12 h-1.5 bg-white/10 rounded-full mt-4 border border-white/5"></div>
+
+            <!-- Header -->
+            <div class="px-6 pt-8 pb-4 text-center">
+                <div class="flex mb-2 items-center justify-center gap-2">
+                    <span class="text-2xl">🐕</span>
+                    <h1 class="shimmer-text animate-text-shimmer text-xl font-bold tracking-tight">BENNY TERMINAL</h1>
+                </div>
+                <p class="text-[10px] uppercase tracking-[0.25em] text-yellow-500/60 font-mono">🆓 7 Days Free Trial</p>
+                <p class="text-[9px] text-white/30 font-mono mt-1">Professional Trading Analysis</p>
+            </div>
+
+            <!-- Main Content Area -->
+            <div class="flex-1 px-6 pb-8 flex flex-col items-center relative z-10">
+                
+                <!-- ID/Avatar Section -->
+                <div class="relative w-24 h-24 mb-6 rounded-2xl p-[1px] bg-gradient-to-b from-white/20 to-transparent">
+                    <div class="w-full h-full rounded-2xl bg-black/50 backdrop-blur-sm flex items-center justify-center overflow-hidden relative">
+                        <!-- Scanner Effect -->
+                        <div id="scanner-line" class="absolute inset-0 bg-gradient-to-b from-transparent via-orange-500/50 to-transparent h-[10%] w-full opacity-0 pointer-events-none z-10"></div>
+                        
+                        <!-- Initial State: Lock -->
+                        <div id="icon-lock" class="text-white/30 transition-all duration-500">
+                            <i data-lucide="lock" class="w-8 h-8"></i>
+                        </div>
+
+                        <!-- Success State: Bitcoin Logo (Hidden initially) -->
+                        <div class="absolute inset-0 flex items-center justify-center transition-opacity duration-700 opacity-0 z-0 bg-black/40" id="user-avatar">
+                             <img src="https://upload.wikimedia.org/wikipedia/commons/4/46/Bitcoin.svg" class="w-14 h-14 object-contain drop-shadow-lg" alt="Bitcoin">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Info Grid (Blurred until unlocked) -->
+                <div id="info-grid" class="w-full space-y-3 mb-6 transition-all duration-500 blur-[4px] opacity-50 grayscale">
+                    <div class="flex justify-between items-center border-b border-white/5 pb-2">
+                        <span class="text-[10px] text-white/40 font-mono uppercase tracking-wider">Status</span>
+                        <span class="text-xs font-medium text-white">Whitelisted</span>
+                    </div>
+                    <!-- Level Removed Here -->
+                    <div class="flex items-center justify-between pt-1">
+                         <!-- Sim Chip -->
+                        <div class="w-8 h-6 rounded sim-chip border border-yellow-600/30 opacity-80 grid grid-cols-2 gap-px p-[2px]">
+                            <div class="border border-yellow-900/30 rounded-[1px]"></div>
+                            <div class="border border-yellow-900/30 rounded-[1px]"></div>
+                            <div class="border border-yellow-900/30 rounded-[1px]"></div>
+                            <div class="border border-yellow-900/30 rounded-[1px]"></div>
+                        </div>
+                        <span id="wallet-short" class="font-mono text-[10px] text-white/30 tracking-wider">0x...</span>
+                    </div>
+                </div>
+
+                <!-- Action Button -->
+                <button id="auth-btn" onclick="handleWalletConnect()" class="group relative w-full h-11 bg-white text-black font-semibold text-xs tracking-wide rounded-lg overflow-hidden transition-all duration-300 hover:shadow-[0_0_25px_rgba(255,255,255,0.3)]">
+                    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent translate-x-[-150%] group-hover:animate-[shine_1s_ease-in-out]"></div>
+                    <div class="relative flex items-center justify-center gap-2">
+                        <span id="btn-text">CONNECT WALLET</span>
+                        <i id="btn-icon" data-lucide="wallet" class="w-3.5 h-3.5"></i>
+                    </div>
+                </button>
+
+                <!-- Feedback Message -->
+                <div id="feedback-msg" class="h-4 mt-3 text-[10px] font-mono text-center text-transparent transition-colors duration-300">.</div>
+
+            </div>
+
+            <!-- Bottom Barcode -->
+            <div class="h-10 border-t border-white/10 bg-black/20 flex items-center justify-center gap-4 relative">
+                 <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent"></div>
+                 <div class="font-mono text-[9px] text-yellow-500/30 tracking-[0.5em] animate-pulse">🆓 FREE ACCESS • 7 DAYS</div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        // Initialize Icons first
+        lucide.createIcons();
+
+        // --- CONFIGURATION ---
+        const SUPABASE_URL = 'https://dbxzwynknesxuvtlissd.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRieHp3eW5rbmVzeHV2dGxpc3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg4MDY0OTYsImV4cCI6MjA4NDM4MjQ5Nn0.far-1warbl3rI1oWyJy9h4O8ZmMxfhi38LRDNXQZ9v8';
+        const FUNCTIONS_BASE = `${SUPABASE_URL}/functions/v1`;
+
+        // Initialize Supabase Client
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // --- DOM Elements ---
+        const btn = document.getElementById('auth-btn');
+        const btnText = document.getElementById('btn-text');
+        const feedback = document.getElementById('feedback-msg');
+        const infoGrid = document.getElementById('info-grid');
+        const iconLock = document.getElementById('icon-lock');
+        const userAvatar = document.getElementById('user-avatar');
+        const scannerLine = document.getElementById('scanner-line');
+        const walletDisplay = document.getElementById('wallet-short');
+
+        // Wallet Modal Functions (inline - ensure global scope)
+        if (typeof window.openWalletModal === 'undefined') {
+            window.openWalletModal = function() {
+                const modal = document.getElementById('walletModal');
+                if (modal) modal.classList.add('active');
+            };
+        }
+        if (typeof window.closeWalletModal === 'undefined') {
+            window.closeWalletModal = function() {
+                const modal = document.getElementById('walletModal');
+                if (modal) modal.classList.remove('active');
+            };
+        }
+        if (typeof window.cancelWalletConnection === 'undefined') {
+            window.cancelWalletConnection = function() {
+                const modal = document.getElementById('walletModal');
+                if (modal) modal.classList.remove('active');
+                if (window.walletConnectionPromise) {
+                    window.walletConnectionPromise.reject(new Error('Connection cancelled'));
+                    window.walletConnectionPromise = null;
+                }
+            };
+        }
+
+        // Check libraries after DOM is fully ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', checkLibraries);
+        } else {
+            checkLibraries();
+        }
+
+        function checkLibraries() {
+            console.log('🔄 Checking libraries...');
+            console.log('Ethers.js loaded:', typeof ethers !== 'undefined');
+            console.log('Supabase loaded:', typeof supabase !== 'undefined');
+            
+            const feedbackEl = document.getElementById('feedback-msg');
+            if (typeof ethers === 'undefined') {
+                console.error('❌ Ethers.js failed to load');
+                if (feedbackEl) {
+                    feedbackEl.innerText = 'Error loading wallet library. Please refresh.';
+                    feedbackEl.classList.remove('text-transparent');
+                    feedbackEl.classList.add('text-rose-400');
+                }
+            } else {
+                console.log('✅ All libraries loaded successfully');
+                // Verificar sessão persistente (mobile)
+                checkPersistentSession();
+            }
+        }
+        
+        // Verificar se existe sessão persistente válida (auto-login para mobile)
+        async function checkPersistentSession() {
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                          window.navigator.standalone === true ||
+                          document.referrer.includes('android-app://');
+            
+            console.log('📱 Verificando sessão:', { isMobile, isPWA, hasLocalStorage: !!window.localStorage });
+            
+            // Verificar para mobile OU PWA
+            if (!isMobile && !isPWA) return;
+            
+            try {
+                const sessionStr = localStorage.getItem('shdwxbt_session');
+                console.log('📱 Sessão encontrada:', sessionStr ? 'SIM' : 'NÃO');
+                if (!sessionStr) return;
+                
+                const session = JSON.parse(sessionStr);
+                const expiresAt = new Date(session.expiresAt).getTime();
+                
+                // Verificar se expirou localmente
+                if (Date.now() > expiresAt) {
+                    console.log('📱 Sessão local expirada, limpando...');
+                    localStorage.removeItem('shdwxbt_session');
+                    return;
+                }
+                
+                const feedbackEl = document.getElementById('feedback-msg');
+                const daysRemaining = Math.ceil((expiresAt - Date.now()) / (24 * 60 * 60 * 1000));
+                
+                // Função helper para usar sessão local diretamente
+                function useLocalSession() {
+                    console.log('📱 Usando sessão local, dias restantes:', daysRemaining);
+                    sessionStorage.setItem('shdwxbt_auth', JSON.stringify({
+                        wallet: session.address,
+                        authenticated: true,
+                        timestamp: Date.now(),
+                        role: session.role || 'User',
+                        verified: true,
+                        isPersistent: true,
+                        isLocalOnly: session.isLocalOnly || false
+                    }));
+                    
+                    if (feedbackEl) {
+                        feedbackEl.innerText = `✅ Sessão restaurada! ${daysRemaining} dias restantes. Redirecionando...`;
+                        feedbackEl.classList.remove('text-white/50', 'text-transparent');
+                        feedbackEl.classList.add('text-yellow-400');
+                    }
+                    
+                    const targetPage = session.role === 'Admin' ? 'admin.html' : 'dashboard.html';
+                    setTimeout(() => {
+                        window.location.href = targetPage;
+                    }, 1000);
+                }
+                
+                // Se é uma sessão local-only, usar diretamente sem validar no servidor
+                if (session.isLocalOnly) {
+                    console.log('📱 Sessão local-only detectada, usando diretamente');
+                    useLocalSession();
+                    return;
+                }
+                
+                console.log('📱 Sessão persistente encontrada, tentando validar no servidor...');
+                if (feedbackEl) {
+                    feedbackEl.innerText = 'Verificando sessão anterior...';
+                    feedbackEl.classList.remove('text-transparent');
+                    feedbackEl.classList.add('text-white/50');
+                }
+                
+                // Tentar validar no servidor com timeout curto
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+                
+                try {
+                    const response = await fetch(`${FUNCTIONS_BASE}/auth-check-session`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'apikey': SUPABASE_ANON_KEY
+                        },
+                        body: JSON.stringify({ sessionToken: session.token }),
+                        signal: controller.signal
+                    });
+                    
+                    clearTimeout(timeoutId);
+                    const result = await response.json();
+                    
+                    if (result.ok && result.whitelisted) {
+                        console.log(`✅ Sessão validada pelo servidor! ${result.remainingDays} dias restantes`);
+                        
+                        sessionStorage.setItem('shdwxbt_auth', JSON.stringify({
+                            wallet: result.address,
+                            authenticated: true,
+                            timestamp: Date.now(),
+                            role: result.role || 'User',
+                            verified: true,
+                            isPersistent: true
+                        }));
+                        
+                        if (feedbackEl) {
+                            feedbackEl.innerText = `✅ Sessão restaurada! ${result.remainingDays} dias restantes. Redirecionando...`;
+                            feedbackEl.classList.remove('text-white/50');
+                            feedbackEl.classList.add('text-yellow-400');
+                        }
+                        
+                        const targetPage = result.role === 'Admin' ? 'admin.html' : 'dashboard.html';
+                        setTimeout(() => {
+                            window.location.href = targetPage;
+                        }, 1000);
+                    } else {
+                        console.log('❌ Sessão rejeitada pelo servidor');
+                        // Se servidor rejeitar explicitamente, limpar
+                        localStorage.removeItem('shdwxbt_session');
+                        if (feedbackEl) {
+                            feedbackEl.innerText = 'Sessão expirada. Por favor, conecte novamente.';
+                            feedbackEl.classList.remove('text-white/50');
+                            feedbackEl.classList.add('text-yellow-400');
+                            setTimeout(() => {
+                                feedbackEl.classList.add('text-transparent');
+                                feedbackEl.classList.remove('text-yellow-400');
+                            }, 3000);
+                        }
+                    }
+                } catch (fetchError) {
+                    clearTimeout(timeoutId);
+                    console.log('⚠️ Servidor indisponível, usando sessão local:', fetchError.message);
+                    // Se servidor indisponível (erro de rede, timeout, ou função não existe), usar sessão local
+                    useLocalSession();
+                }
+            } catch (e) {
+                console.error('Erro ao processar sessão persistente:', e);
+            }
+        }
+
+        // --- 1. Background Video Logic ---
+        const video = document.getElementById('bg-video');
+        const videoSrc = 'https://customer-cbeadsgr09pnsezs.cloudflarestream.com/b17f76a1270818e8cdc55e8719b9ace8/manifest/video.m3u8';
+
+        if (Hls.isSupported()) {
+            const hls = new Hls({ enableWorker: true, lowLatencyMode: true });
+            hls.loadSource(videoSrc);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = videoSrc;
+            video.addEventListener('loadedmetadata', () => video.play());
+        }
+
+        let provider = null;
+
+        // --- 2. Backend Authentication Functions ---
+
+        // Get nonce from backend (step 1 of SIWE)
+        async function getNonce(address) {
+            const response = await fetch(`${FUNCTIONS_BASE}/auth-nonce`, {
+                method: "POST",
+                headers: { 
+                    "Content-Type": "application/json",
+                    "apikey": SUPABASE_ANON_KEY,
+                    "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
+                },
+                body: JSON.stringify({ address }),
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || "nonce_failed");
+            }
+            return data.nonce;
+        }
+
+        // Verify signature + nonce + whitelist on backend (step 3 of SIWE)
+        async function verifyOnBackend(address, message, signature) {
+            // Detectar se é mobile
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            const deviceInfo = `${navigator.userAgent}|${screen.width}x${screen.height}|${navigator.language}`;
+            
+            const response = await fetch(`${FUNCTIONS_BASE}/auth-verify`, {
+                method: "POST",
+                headers: { 
+                    "Content-Type": "application/json",
+                    "apikey": SUPABASE_ANON_KEY,
+                    "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
+                },
+                body: JSON.stringify({ 
+                    address, 
+                    message, 
+                    signature,
+                    isMobile: isMobile,
+                    deviceInfo: deviceInfo,
+                    createSession: true  // Solicitar criação de sessão persistente
+                }),
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || "verify_failed");
+            }
+            return data;
+        }
+
+        // Sign message with wallet
+        async function signMessage(address, message) {
+            // Priority 1: Use ethers signer (stored globally by wallet-connectors.js)
+            if (window.currentSigner) {
+                console.log('Using ethers signer for signature...');
+                return await window.currentSigner.signMessage(message);
+            }
+
+            // Priority 2: Provider with request method (MetaMask, Trust, etc)
+            const p = window.currentProvider?.request ? window.currentProvider : window.ethereum;
+            if (!p?.request) {
+                throw new Error("No signing provider available");
+            }
+
+            console.log('Using provider.request for signature...');
+            return await p.request({
+                method: "personal_sign",
+                params: [message, address]
+            });
+        }
+
+        // --- 3. Wallet Connection Functions ---
+
+        // Open wallet modal (implemented in wallet-connectors.js)
+        async function requestWallet() {
+            return new Promise((resolve, reject) => {
+                openWalletModal();
+                window.walletConnectionPromise = { resolve, reject };
+            });
+        }
+
+        // Shorten wallet address for display
+        function shortenAddress(address) {
+            if (!address) return '0x...';
+            return address.slice(0, 6) + '...' + address.slice(-4);
+        }
+
+        // --- 4. Main Authentication Handler ---
+        async function handleWalletConnect() {
+            // Prevent multiple clicks
+            if (btn.disabled) return;
+            btn.disabled = true;
+            
+            try {
+                // Step 1: Connect Wallet
+                btnText.innerText = 'CONNECTING...';
+                feedback.innerText = 'Requesting wallet connection...';
+                feedback.classList.remove('text-transparent');
+                feedback.classList.add('text-white/50');
+
+                const address = (await requestWallet()).toLowerCase();
+                
+                // Se não recebeu endereço (redirecionamento para app)
+                if (!address) {
+                    btnText.innerText = 'CONNECT WALLET';
+                    feedback.innerText = 'Opening wallet app...';
+                    btn.disabled = false;
+                    return;
+                }
+                
+                console.log('Connected address:', address);
+
+                // Wait 500ms to ensure provider is ready (increased for mobile)
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                // Step 2: Get nonce from backend
+                btnText.innerText = 'PREPARING...';
+                feedback.innerText = 'Preparing secure authentication...';
+                
+                const nonce = await getNonce(address);
+                console.log('✅ Nonce received:', nonce);
+
+                // Step 3: Get chain ID
+                const p = window.currentProvider?.request ? window.currentProvider : window.ethereum;
+                if (!p || !p.request) {
+                    throw new Error('Wallet provider not available. Please try again.');
+                }
+                const chainIdHex = await p.request({ method: "eth_chainId" });
+                const chainId = parseInt(chainIdHex, 16);
+
+                // Step 4: Build SIWE message
+                const domain = window.location.host;
+                const uri = window.location.origin;
+                const issuedAt = new Date().toISOString();
+
+                const message = `${domain} wants you to sign in with your Ethereum account:
+${address}
+
+🐕 Sign in to BENNY TERMINAL - Start your FREE 7-day trial
+
+URI: ${uri}
+Version: 1
+Chain ID: ${chainId}
+Nonce: ${nonce}
+Issued At: ${issuedAt}`;
+
+                // Step 5: Request signature
+                btnText.innerText = 'SIGN MESSAGE...';
+                feedback.innerText = 'Please sign the message in your wallet';
+                feedback.classList.remove('text-white/50');
+                feedback.classList.add('text-yellow-400', 'animate-pulse');
+                
+                const signature = await signMessage(address, message);
+                console.log('✅ Signature received');
+                
+                feedback.classList.remove('animate-pulse', 'text-yellow-400');
+
+                // Step 6: Verify on backend (signature + nonce + whitelist)
+                btnText.innerText = 'VERIFYING...';
+                feedback.innerText = 'Verifying ' + shortenAddress(address);
+                feedback.classList.add('text-white/50');
+                scannerLine.classList.add('animate-scan', 'opacity-100');
+
+                const result = await verifyOnBackend(address, message, signature);
+                console.log('✅ Backend verification result:', result);
+
+                // Step 7: Grant or deny access based on backend response
+                if (result.ok && result.whitelisted) {
+                    grantAccess(address, result.role, signature, result);
+                } else {
+                    denyAccess();
+                }
+
+            } catch (err) {
+                console.error('Authentication error:', err);
+                btnText.innerText = 'CONNECT WALLET';
+                scannerLine.classList.remove('animate-scan', 'opacity-100');
+                
+                // Specific error messages
+                let errorMsg = err.message || 'Connection failed';
+                if (err.message.includes('rejected') || err.message.includes('denied') || err.code === 4001) {
+                    errorMsg = 'Signature rejected by user';
+                } else if (err.message.includes('cancelled') || err.message.includes('canceled')) {
+                    errorMsg = 'Connection cancelled';
+                } else if (err.message.includes('closed')) {
+                    errorMsg = 'Wallet closed';
+                } else if (err.message.includes('timeout')) {
+                    errorMsg = 'Connection timeout. Please try again.';
+                } else if (err.message.includes('nonce_expired')) {
+                    errorMsg = 'Session expired. Please try again.';
+                } else if (err.message.includes('nonce_already_used')) {
+                    errorMsg = 'Security token already used. Try again.';
+                } else if (err.message.includes('bad_signature')) {
+                    errorMsg = 'Invalid signature. Please try again.';
+                }
+                
+                feedback.innerText = errorMsg;
+                feedback.classList.remove('text-white/50', 'text-yellow-400', 'animate-pulse');
+                feedback.classList.add('text-rose-400');
+                
+                setTimeout(() => {
+                    feedback.classList.add('text-transparent');
+                    feedback.classList.remove('text-rose-400');
+                }, 4000);
+            } finally {
+                // Re-enable button after 1 second
+                setTimeout(() => {
+                    btn.disabled = false;
+                }, 1000);
+            }
+        }
+        // Expose to global scope for onclick
+        window.handleWalletConnect = handleWalletConnect;
+
+        // --- 5. Access Control Functions ---
+
+        function grantAccess(wallet, role, signature, backendResult) {
+            scannerLine.classList.remove('animate-scan', 'opacity-100');
+            
+            // Detectar se é mobile
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            
+            // ========================================
+            // 🆓 SISTEMA DE TRIAL GRATUITO DE 7 DIAS
+            // ========================================
+            
+            // Verificar se já existe trial ativo
+            let trialData = null;
+            try {
+                const existingTrial = localStorage.getItem('shdwxbt_trial');
+                if (existingTrial) {
+                    trialData = JSON.parse(existingTrial);
+                    
+                    // Verificar se o trial expirou
+                    const trialExpiry = new Date(trialData.expiresAt);
+                    const now = new Date();
+                    
+                    if (now > trialExpiry) {
+                        console.log('⏰ Trial de 7 dias expirou em:', trialExpiry);
+                        // Trial expirado - verificar se é holder de $BENNY
+                        // Por enquanto, permitir acesso mas marcar como trial_expired
+                        trialData.status = 'expired';
+                        localStorage.setItem('shdwxbt_trial', JSON.stringify(trialData));
+                    } else {
+                        console.log('✅ Trial ativo até:', trialExpiry);
+                        trialData.status = 'active';
+                    }
+                }
+            } catch (err) {
+                console.error('Erro ao verificar trial:', err);
+            }
+            
+            // Se não tem trial, criar novo trial de 7 dias
+            if (!trialData) {
+                const trialStartDate = new Date();
+                const trialEndDate = new Date(trialStartDate.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 dias
+                
+                trialData = {
+                    wallet: wallet,
+                    startedAt: trialStartDate.toISOString(),
+                    expiresAt: trialEndDate.toISOString(),
+                    status: 'active',
+                    daysRemaining: 7,
+                    isNewUser: true
+                };
+                
+                try {
+                    localStorage.setItem('shdwxbt_trial', JSON.stringify(trialData));
+                    console.log('🆓 Trial de 7 dias iniciado! Expira em:', trialEndDate);
+                } catch (err) {
+                    console.error('Erro ao criar trial:', err);
+                }
+            }
+            
+            // Salvar sessão no sessionStorage (comportamento padrão)
+            const authData = {
+                wallet: wallet,
+                authenticated: true,
+                timestamp: Date.now(),
+                role: role || 'User',
+                signature: signature,
+                verified: true,
+                verifiedAt: new Date().toISOString(),
+                // Adicionar informação do trial
+                trial: {
+                    status: trialData?.status || 'active',
+                    expiresAt: trialData?.expiresAt,
+                    daysRemaining: trialData ? Math.max(0, Math.ceil((new Date(trialData.expiresAt) - new Date()) / (24 * 60 * 60 * 1000))) : 7
+                }
+            };
+            sessionStorage.setItem('shdwxbt_auth', JSON.stringify(authData));
+            
+            // Se mobile, SEMPRE salvar sessão persistente no localStorage
+            // Mesmo se o servidor não retornar token, criar sessão local
+            if (isMobile) {
+                const persistentSession = {
+                    // Se servidor retornou token, usar; senão criar token local
+                    token: backendResult?.sessionToken || `local_${Date.now()}_${Math.random().toString(36).substr(2, 16)}`,
+                    address: wallet,
+                    role: role || 'User',
+                    // Se servidor retornou expiração, usar; senão 7 dias a partir de agora
+                    expiresAt: backendResult?.sessionExpiresAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                    savedAt: new Date().toISOString(),
+                    deviceInfo: `${navigator.userAgent}|${screen.width}x${screen.height}`,
+                    isLocalOnly: !backendResult?.sessionToken, // Flag para identificar sessão local
+                    signature: signature // Guardar assinatura para revalidação se necessário
+                };
+                
+                try {
+                    localStorage.setItem('shdwxbt_session', JSON.stringify(persistentSession));
+                    console.log('📱 Sessão persistente salva:', {
+                        hasServerToken: !!backendResult?.sessionToken,
+                        expiresAt: persistentSession.expiresAt,
+                        address: wallet.substring(0, 10) + '...'
+                    });
+                } catch (storageErr) {
+                    console.error('❌ Erro ao salvar sessão no localStorage:', storageErr);
+                }
+            }
+            
+            const isAdmin = role === 'Admin';
+            const targetPage = isAdmin ? 'admin.html' : 'dashboard.html';
+            const targetName = isAdmin ? 'admin panel' : 'dashboard';
+            
+            btn.classList.add('bg-yellow-500', 'text-black', 'hover:bg-yellow-600', 'hover:shadow-[0_0_20px_rgba(234,179,8,0.5)]');
+            btnText.innerText = "VERIFIED ✓";
+            
+            // Mostrar mensagem diferente para mobile
+            if (isMobile && backendResult && backendResult.sessionToken) {
+                feedback.innerText = `✅ Verificado! Trial de 7 dias ativado. Redirecionando...`;
+            } else if (trialData && trialData.status === 'active') {
+                const daysLeft = Math.max(0, Math.ceil((new Date(trialData.expiresAt) - new Date()) / (24 * 60 * 60 * 1000)));
+                feedback.innerText = `✅ Trial ativo: ${daysLeft} dias restantes. Redirecionando...`;
+            } else if (trialData && trialData.status === 'expired') {
+                feedback.innerText = `⚠️ Trial expirado. Verifique se é holder de $BENNY...`;
+            } else {
+                feedback.innerText = `Signature verified. Redirecting to ${targetName}...`;
+            }
+            feedback.classList.remove('text-white/50');
+            feedback.classList.add('text-yellow-400', 'tracking-widest');
+            
+            setTimeout(function() {
+                window.location.href = targetPage;
+            }, 1500);
+            
+            infoGrid.classList.remove('blur-[4px]', 'opacity-50', 'grayscale');
+            walletDisplay.innerText = shortenAddress(wallet);
+            walletDisplay.classList.add('text-yellow-400');
+            iconLock.classList.add('opacity-0', 'scale-50');
+            
+            setTimeout(function() {
+                iconLock.style.display = 'none';
+                userAvatar.classList.remove('opacity-0');
+            }, 300);
+        }
+
+        function denyAccess() {
+            scannerLine.classList.remove('animate-scan', 'opacity-100');
+            btn.classList.add('bg-rose-600', 'text-white');
+            btnText.innerText = "NOT WHITELISTED";
+            feedback.innerText = "Wallet address not found in whitelist.";
+            feedback.classList.remove('text-white/50');
+            feedback.classList.add('text-rose-400');
+            
+            var card = document.getElementById('card-container');
+            card.classList.add('animate-[pulse_0.2s_ease-in-out_3]');
+            
+            setTimeout(function() {
+                btn.classList.remove('bg-rose-600', 'text-white', 'cursor-not-allowed');
+                btn.classList.add('bg-white', 'text-black');
+                btnText.innerText = "CONNECT WALLET";
+                feedback.classList.add('text-transparent');
+                feedback.classList.remove('text-rose-400');
+                card.classList.remove('animate-[pulse_0.2s_ease-in-out_3]');
+            }, 3000);
+        }
+
+        // Log when page loads
+        console.log('🐕 BENNY TERMINAL Login page loaded (Secure SIWE Authentication + 7-Day Free Trial)');
+        
+        // ========================================
+        // MOBILE HANDLING
+        // ========================================
+        
+        // Esconder "Any Wallet" em desktop, mostrar só em mobile
+        // Destacar WalletConnect como opção principal no mobile
+        function updateWalletOptionsForDevice() {
+            const anyWalletOption = document.getElementById('anyWalletOption');
+            const walletConnectOption = document.querySelector('.wallet-connect-option');
+            
+            if (anyWalletOption) {
+                if (window.isMobile && window.isMobile()) {
+                    anyWalletOption.style.display = 'block';
+                    // Se está no in-app browser, destacar esta opção
+                    if (window.isInAppBrowser && window.isInAppBrowser()) {
+                        anyWalletOption.style.borderColor = '#a855f7';
+                        anyWalletOption.style.background = '#3f3f46';
+                    }
+                } else {
+                    anyWalletOption.style.display = 'none';
+                }
+            }
+            
+            // WalletConnect é sempre visível e destacado no mobile
+            if (walletConnectOption && window.isMobile && window.isMobile()) {
+                // No mobile, WalletConnect é a melhor opção universal
+                walletConnectOption.querySelector('.wallet-desc').textContent = 'Universal • Any Wallet';
+            }
+        }
+        
+        // Auto-connect se aberto de dentro de um app de carteira
+        async function checkAutoConnect() {
+            if (window.isMobile && window.isMobile() && window.ethereum) {
+                console.log('📱 Mobile with injected wallet detected');
+                
+                // Pequeno delay para garantir que tudo carregou
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Verificar se tem carteira disponível
+                if (window.ethereum.isMetaMask || window.ethereum.isTrust || (window.$onekey && window.$onekey.ethereum)) {
+                    console.log('📱 Wallet detected, attempting auto-connect...');
+                    
+                    // Mostrar feedback
+                    const feedback = document.getElementById('feedback-msg');
+                    if (feedback) {
+                        feedback.innerText = '🐕 Wallet detected! Tap Connect to start your FREE trial...';
+                        feedback.classList.remove('text-transparent');
+                        feedback.classList.add('text-yellow-400');
+                        
+                        // Esconder após 3 segundos
+                        setTimeout(() => {
+                            feedback.classList.add('text-transparent');
+                            feedback.classList.remove('text-yellow-400');
+                        }, 3000);
+                    }
+                }
+            }
+        }
+        
+        // Executar após carregamento completo
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                updateWalletOptionsForDevice();
+                checkAutoConnect();
+            });
+        } else {
+            updateWalletOptionsForDevice();
+            checkAutoConnect();
+        }
+    </script>
+
+</body></html>

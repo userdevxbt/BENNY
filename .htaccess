@@ -1,0 +1,83 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# SHDWXBT / BENNY - Apache Security Configuration
+# Protege arquivos JavaScript e pasta dist contra download direto
+# ═══════════════════════════════════════════════════════════════════════════════
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+
+# Bloquear acesso direto a todos os arquivos .js exceto quando referenciados por páginas do próprio site
+RewriteCond %{HTTP_REFERER} !^https?://(www\.)?([^/]+)/.*$ [NC]
+RewriteCond %{REQUEST_URI} \.(js)$ [NC]
+RewriteRule .* - [F,L]
+
+# Bloquear acesso direto à pasta dist/
+RewriteCond %{HTTP_REFERER} !^https?://(www\.)?([^/]+)/.*$ [NC]
+RewriteCond %{REQUEST_URI} ^/dist/ [NC]
+RewriteRule .* - [F,L]
+
+</IfModule>
+
+# Proteger arquivos JavaScript sensíveis
+<FilesMatch "\.(js)$">
+    <IfModule mod_headers.c>
+        Header set X-Content-Type-Options "nosniff"
+        Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+        Header set Pragma "no-cache"
+        Header set X-Robots-Tag "noindex, nofollow, noarchive, nosnippet"
+    </IfModule>
+    
+    # Negar acesso direto via navegador (apenas permitir quando carregado por HTML)
+    <IfModule mod_rewrite.c>
+        RewriteEngine On
+        # Bloquear se não vier de uma página HTML do mesmo domínio
+        RewriteCond %{HTTP_REFERER} !^$
+        RewriteCond %{HTTP_REFERER} !^https?://(www\.)?([^/]+).*$ [NC]
+        RewriteRule .* - [F,L]
+    </IfModule>
+</FilesMatch>
+
+# Proteger especificamente a pasta dist/
+<IfModule mod_authz_core.c>
+    <Directory "*/dist">
+        Require all denied
+    </Directory>
+</IfModule>
+
+# Proteger arquivos críticos de metodologia
+<FilesMatch "(smc-precision-engine|master-precision-system|fibonacci-precision-engine|institutional-engine|ml-adaptive-engine|confluence-thermometer|technical-analysis|advanced-analysis|app|config|supabase-integration|binance-api|auto-scanner|backtester|hot-signals|smart-risk-manager|smart-alerts|opportunities-service|panels-logic|ai-signal-validator|institutional-scanner|institutional-dashboard)\.js$">
+    <IfModule mod_headers.c>
+        Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+        Header set X-Robots-Tag "noindex, nofollow, noarchive, nosnippet"
+        Header set X-Content-Type-Options "nosniff"
+    </IfModule>
+    
+    # Bloquear download direto
+    <IfModule mod_rewrite.c>
+        RewriteEngine On
+        RewriteCond %{HTTP_REFERER} !^$
+        RewriteCond %{HTTP_REFERER} !^https?://(www\.)?([^/]+).*$ [NC]
+        RewriteRule .* - [F,L]
+    </IfModule>
+</FilesMatch>
+
+# Headers de segurança globais
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "DENY"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+    Header set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+</IfModule>
+
+# Desabilitar listagem de diretórios
+Options -Indexes
+
+# Proteger arquivos de configuração
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+<FilesMatch "(config\.local\.js|\.env|\.git)">
+    Require all denied
+</FilesMatch>

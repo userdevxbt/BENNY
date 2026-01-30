@@ -1,0 +1,1812 @@
+<!DOCTYPE html>
+<html lang="en" class="dark"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SHDWXBT | Admin Console</title>
+
+<!-- Security Headers -->
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="X-Frame-Options" content="DENY">
+<meta http-equiv="X-XSS-Protection" content="1; mode=block">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+
+<!-- 🛡️ Security Shield - MUST LOAD FIRST -->
+<script src="security-shield.js"></script>
+
+<!-- Fonts: Inter & JetBrains Mono -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Auth Protection Script - ADMIN ONLY -->
+<script>
+    // Check authentication before rendering page - ADMIN ONLY ACCESS
+    (function() {
+        const SESSION_KEY = 'shdwxbt_auth';
+        const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+        const SUPABASE_URL = 'https://dbxzwynknesxuvtlissd.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRieHp3eW5rbmVzeHV2dGxpc3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg4MDY0OTYsImV4cCI6MjA4NDM4MjQ5Nn0.far-1warbl3rI1oWyJy9h4O8ZmMxfhi38LRDNXQZ9v8';
+        
+        async function checkAdminAuth() {
+            const authData = sessionStorage.getItem(SESSION_KEY);
+            
+            if (!authData) {
+                window.location.href = 'login.html';
+                return false;
+            }
+            
+            try {
+                const auth = JSON.parse(authData);
+                const now = Date.now();
+                
+                // Check if session is valid and not expired
+                if (!auth.authenticated || !auth.wallet || (now - auth.timestamp) > SESSION_DURATION) {
+                    sessionStorage.removeItem(SESSION_KEY);
+                    window.location.href = 'login.html';
+                    return false;
+                }
+                
+                // Check if user is Admin in whitelist
+                console.log('🔐 Checking admin access for wallet:', auth.wallet);
+                
+                const response = await fetch(
+                    `${SUPABASE_URL}/rest/v1/whitelist?wallet_address=ilike.${auth.wallet.toLowerCase()}&select=role,is_active`,
+                    {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
+                
+                const data = await response.json();
+                console.log('🔐 Whitelist response:', data);
+                
+                // Must be Admin role and active
+                if (!data || data.length === 0) {
+                    console.warn('🔐 User not found in whitelist');
+                    window.location.href = 'dashboard.html';
+                    return false;
+                }
+                
+                const user = data[0];
+                if (user.role !== 'Admin' || !user.is_active) {
+                    console.warn('🔐 User is not admin or inactive:', user);
+                    window.location.href = 'dashboard.html';
+                    return false;
+                }
+                
+                console.log('✅ Admin access granted');
+
+                
+                // Show page content only if admin
+                document.documentElement.style.visibility = 'visible';
+                return true;
+            } catch (e) {
+                console.error('Admin auth check failed:', e);
+                window.location.href = 'login.html';
+                return false;
+            }
+        }
+        
+        // Hide page until auth confirmed
+        document.documentElement.style.visibility = 'hidden';
+        
+        // Run auth check
+        checkAdminAuth().then(isAdmin => {
+            if (!isAdmin) {
+                document.body.innerHTML = '';
+            }
+        });
+    })();
+</script>
+<script>
+tailwind.config = {
+darkMode: 'class',
+theme: {
+extend: {
+fontFamily: {
+sans: ['Inter', 'sans-serif'],
+mono: ['JetBrains Mono', 'monospace'],
+},
+colors: {
+gray: {
+850: '#1f2937',
+900: '#111827',
+950: '#030712',
+}
+},
+animation: {
+'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+},
+}
+}
+}
+</script>
+<style>
+body {
+background-color: #050505;
+color: #d4d4d4;
+-webkit-font-smoothing: antialiased;
+}
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #262626; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #404040; }
+/* Glass Panel */
+.glass-panel {
+background: rgba(20, 20, 20, 0.6);
+-webkit-backdrop-filter: blur(12px);
+backdrop-filter: blur(12px);
+border: 1px solid rgba(255, 255, 255, 0.08);
+box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+/* Custom Input Reset */
+.input-reset {
+background: transparent;
+border: none;
+outline: none;
+box-shadow: none;
+}
+/* Custom Date Input Styling */
+input[type="date"]::-webkit-calendar-picker-indicator {
+filter: invert(1);
+opacity: 0.5;
+cursor: pointer;
+}
+/* Shimmer Effect */
+.shimmer-bg {
+background: linear-gradient(110deg, rgba(255,255,255,0.02) 8%, rgba(255,255,255,0.05) 18%, rgba(255,255,255,0.02) 33%);
+background-size: 200% 100%;
+animation: shimmer 8s infinite linear;
+}
+@keyframes shimmer {
+to { background-position-x: -200%; }
+}
+/* Custom Toggle Switch */
+.toggle-checkbox:checked {
+right: 0;
+border-color: #10b981;
+}
+.toggle-checkbox:checked + .toggle-label {
+background-color: #10b981;
+}
+</style>
+<link id="all-fonts-link-font-geist" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&amp;display=swap"><style id="all-fonts-style-font-geist">.font-geist { font-family: 'Geist', sans-serif !important; }</style><link id="all-fonts-link-font-roboto" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&amp;display=swap"><style id="all-fonts-style-font-roboto">.font-roboto { font-family: 'Roboto', sans-serif !important; }</style><link id="all-fonts-link-font-montserrat" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&amp;display=swap"><style id="all-fonts-style-font-montserrat">.font-montserrat { font-family: 'Montserrat', sans-serif !important; }</style><link id="all-fonts-link-font-poppins" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&amp;display=swap"><style id="all-fonts-style-font-poppins">.font-poppins { font-family: 'Poppins', sans-serif !important; }</style><link id="all-fonts-link-font-playfair" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;900&amp;display=swap"><style id="all-fonts-style-font-playfair">.font-playfair { font-family: 'Playfair Display', serif !important; }</style><link id="all-fonts-link-font-instrument-serif" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:wght@400;500;600;700&amp;display=swap"><style id="all-fonts-style-font-instrument-serif">.font-instrument-serif { font-family: 'Instrument Serif', serif !important; }</style><link id="all-fonts-link-font-merriweather" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700;900&amp;display=swap"><style id="all-fonts-style-font-merriweather">.font-merriweather { font-family: 'Merriweather', serif !important; }</style><link id="all-fonts-link-font-bricolage" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@300;400;500;600;700&amp;display=swap"><style id="all-fonts-style-font-bricolage">.font-bricolage { font-family: 'Bricolage Grotesque', sans-serif !important; }</style><link id="all-fonts-link-font-jakarta" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;display=swap"><style id="all-fonts-style-font-jakarta">.font-jakarta { font-family: 'Plus Jakarta Sans', sans-serif !important; }</style><link id="all-fonts-link-font-manrope" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&amp;display=swap"><style id="all-fonts-style-font-manrope">.font-manrope { font-family: 'Manrope', sans-serif !important; }</style><link id="all-fonts-link-font-space-grotesk" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap"><style id="all-fonts-style-font-space-grotesk">.font-space-grotesk { font-family: 'Space Grotesk', sans-serif !important; }</style><link id="all-fonts-link-font-work-sans" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700;800&amp;display=swap"><style id="all-fonts-style-font-work-sans">.font-work-sans { font-family: 'Work Sans', sans-serif !important; }</style><link id="all-fonts-link-font-pt-serif" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=PT+Serif:wght@400;700&amp;display=swap"><style id="all-fonts-style-font-pt-serif">.font-pt-serif { font-family: 'PT Serif', serif !important; }</style><link id="all-fonts-link-font-geist-mono" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600;700&amp;display=swap"><style id="all-fonts-style-font-geist-mono">.font-geist-mono { font-family: 'Geist Mono', monospace !important; }</style><link id="all-fonts-link-font-space-mono" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&amp;display=swap"><style id="all-fonts-style-font-space-mono">.font-space-mono { font-family: 'Space Mono', monospace !important; }</style><link id="all-fonts-link-font-quicksand" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&amp;display=swap"><style id="all-fonts-style-font-quicksand">.font-quicksand { font-family: 'Quicksand', sans-serif !important; }</style><link id="all-fonts-link-font-nunito" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700;800&amp;display=swap"><style id="all-fonts-style-font-nunito">.font-nunito { font-family: 'Nunito', sans-serif !important; }</style><link id="all-fonts-link-font-newsreader" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400..800&amp;display=swap"><style id="all-fonts-style-font-newsreader">.font-newsreader { font-family: 'Newsreader', serif !important; }</style><link id="all-fonts-link-font-google-sans-flex" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:wght@400;500;600;700&amp;display=swap"><style id="all-fonts-style-font-google-sans-flex">.font-google-sans-flex { font-family: 'Google Sans Flex', sans-serif !important; }</style><link id="all-fonts-link-font-oswald" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&amp;display=swap"><style id="all-fonts-style-font-oswald">.font-oswald { font-family: 'Oswald', sans-serif !important; }</style><link id="all-fonts-link-font-dm-sans" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&amp;display=swap"><style id="all-fonts-style-font-dm-sans">.font-dm-sans { font-family: 'DM Sans', sans-serif !important; }</style><link id="all-fonts-link-font-cormorant" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&amp;display=swap"><style id="all-fonts-style-font-cormorant">.font-cormorant { font-family: 'Cormorant Garamond', serif !important; }</style></head>
+<body class="h-screen w-full flex overflow-hidden selection:bg-orange-500/20 selection:text-orange-200">
+
+    <!-- Language Toggle Button -->
+    <button id="lang-toggle" onclick="toggleAdminLanguage()" style="position: fixed; top: 16px; right: 16px; z-index: 9999; background: rgba(15, 15, 15, 0.9); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 6px 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12px; color: #fff;">
+        <span id="lang-flag">🇺🇸</span>
+        <span id="lang-code">EN</span>
+    </button>
+
+    <!-- Sidebar -->
+    <aside class="md:w-64 flex-shrink-0 flex flex-col transition-all duration-300 bg-[#080808] w-16 z-20 border-white/5 border-r justify-between">
+        <div class="">
+            <!-- Header Logo -->
+            <div class="h-16 flex items-center justify-center md:justify-start md:px-6 border-b border-white/5">
+                <div class="w-8 h-8 bg-gradient-to-br from-white to-neutral-400 rounded-lg flex items-center justify-center text-black font-bold text-xs tracking-tighter">
+                    S
+                </div>
+                <span class="hidden md:block text-sm font-semibold text-white tracking-tight ml-3">SHDWX₿T <span class="text-white/40">ADMIN</span></span>
+            </div>
+
+            <!-- Nav -->
+            <nav class="mt-6 px-2 space-y-1" id="main-nav">
+                <button onclick="switchView('access')" id="nav-access" class="w-full flex items-center px-2 md:px-4 py-2 text-white/90 bg-white/5 rounded-lg group transition-all">
+                    <i data-lucide="shield-check" class="w-5 h-5 text-orange-500"></i>
+                    <span class="ml-3 text-sm font-medium hidden md:block" data-admin-key="nav_access_control">Access Control</span>
+                </button>
+                <button onclick="switchView('online')" id="nav-online" class="w-full flex items-center px-2 md:px-4 py-2 text-white/40 hover:text-white hover:bg-white/5 rounded-lg group transition-all">
+                    <i data-lucide="radio" class="w-5 h-5"></i>
+                    <span class="ml-3 text-sm font-medium hidden md:block" data-admin-key="nav_online_users">Online Users</span>
+                    <span id="nav-online-badge" class="hidden md:flex ml-auto w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-400 text-[10px] items-center justify-center font-mono">0</span>
+                </button>
+                <button onclick="switchView('activity')" id="nav-activity" class="w-full flex items-center px-2 md:px-4 py-2 text-white/40 hover:text-white hover:bg-white/5 rounded-lg group transition-all">
+                    <i data-lucide="activity" class="w-5 h-5"></i>
+                    <span class="ml-3 text-sm font-medium hidden md:block" data-admin-key="nav_activity">Activity Log</span>
+                </button>
+                <button onclick="switchView('settings')" id="nav-settings" class="w-full flex items-center px-2 md:px-4 py-2 text-white/40 hover:text-white hover:bg-white/5 rounded-lg group transition-all">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                    <span class="ml-3 text-sm font-medium hidden md:block" data-admin-key="nav_settings">Settings</span>
+                </button>
+            </nav>
+        </div>
+
+        <!-- User -->
+        <div class="p-4 border-t border-white/5">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" class="lucide lucide-user w-4 h-4 text-white/60"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                </div>
+                <div class="hidden md:block flex-1">
+                    <p class="text-xs font-medium text-white">Admin</p>
+                    <p id="sidebar-wallet" class="text-[10px] text-white/40 font-mono">0x...8A21</p>
+                </div>
+                <button onclick="handleLogout()" class="hidden md:flex w-8 h-8 rounded-full border border-white/10 items-center justify-center text-white/40 hover:text-rose-400 hover:border-rose-400/50 hover:bg-rose-400/10 transition-colors" title="Disconnect Wallet">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Wrapper -->
+    <main class="flex-1 flex flex-col relative overflow-hidden bg-gradient-to-br from-[#050505] to-[#0a0a0a]">
+        
+        <!-- Background Grid -->
+        <div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay"></div>
+        <div class="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_0%,black_40%,transparent_100%)] pointer-events-none"></div>
+
+        <!-- Top Header -->
+        <header class="h-16 flex items-center justify-between px-8 border-b border-white/5 z-10 bg-[#050505]/50 backdrop-blur-md">
+            <div class="flex items-center gap-2 text-xs text-white/40">
+                <span>Dashboard</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="chevron-right" class="lucide lucide-chevron-right w-3 h-3"><path d="m9 18 6-6-6-6"></path></svg>
+                <span class="text-white" id="page-title">Access Control</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <button class="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/5 transition-colors relative" title="Notifications" aria-label="View notifications">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="bell" class="lucide lucide-bell w-4 h-4"><path d="M10.268 21a2 2 0 0 0 3.464 0"></path><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326" class=""></path></svg>
+                    <span class="w-1.5 h-1.5 animate-pulse bg-orange-500 rounded-full absolute top-2 right-2"></span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Content Area -->
+        <div class="flex-1 overflow-y-auto p-8 relative z-10">
+            <div class="max-w-5xl mx-auto">
+                
+                <!-- VIEW: ACCESS CONTROL -->
+                <div id="view-access" class="space-y-8 animate-fade-in">
+                    <div class="flex items-end justify-between">
+                        <div>
+                            <h1 class="text-2xl font-semibold tracking-tight text-white mb-1" data-admin-key="page_access_control">Access Control</h1>
+                            <p class="text-sm text-white/40" data-admin-key="page_desc">Manage authorized wallet addresses and expirations.</p>
+                        </div>
+                    </div>
+
+                    <!-- Stats -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <!-- Online Users - Clickable -->
+                        <div onclick="toggleOnlinePanel()" class="glass-panel p-5 rounded-xl flex flex-col justify-between relative overflow-hidden border-l-2 border-cyan-500 cursor-pointer hover:bg-white/5 transition-all">
+                            <div class="flex justify-between items-start">
+                                <span class="text-[10px] uppercase tracking-wider text-white/40 font-medium" data-admin-key="stat_online_now">Online Now</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-cyan-500"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="M2 12h2"></path><path d="M20 12h2"></path></svg>
+                            </div>
+                            <div class="mt-4 flex items-center gap-2">
+                                <span class="text-2xl font-semibold text-white tracking-tight transition-transform" id="stat-online">0</span>
+                                <span class="text-[10px] text-cyan-500 ml-1 font-mono" data-admin-key="stat_users">Users</span>
+                                <div class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse ml-auto"></div>
+                            </div>
+                            <div class="absolute bottom-1 right-2 text-[8px] text-white/20" data-admin-key="click_to_view">Click to view</div>
+                        </div>
+                        <!-- Total Active -->
+                        <div class="glass-panel p-5 rounded-xl flex flex-col justify-between shimmer-bg relative overflow-hidden">
+                            <div class="flex justify-between items-start">
+                                <span class="text-[10px] uppercase tracking-wider text-white/40 font-medium" data-admin-key="stat_total_active">Total Active</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="users" class="lucide lucide-users w-4 h-4 text-emerald-500"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><path d="M16 3.128a4 4 0 0 1 0 7.744"></path><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><circle cx="9" cy="7" r="4"></circle></svg>
+                            </div>
+                            <div class="mt-4">
+                                <span class="text-2xl font-semibold text-white tracking-tight" id="stat-total">0</span>
+                                <span class="text-[10px] text-emerald-500 ml-2 font-mono" data-admin-key="stat_wallets">Wallets</span>
+                            </div>
+                        </div>
+                        <div class="glass-panel p-5 rounded-xl flex flex-col justify-between relative overflow-hidden">
+                            <div class="flex justify-between items-start">
+                                <span class="text-[10px] uppercase tracking-wider text-white/40 font-medium" data-admin-key="stat_expired">Expired Users</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="timer-off" class="lucide lucide-timer-off w-4 h-4 text-rose-500"><path d="M10 2h4"></path><path d="M4.6 11a8 8 0 0 0 1.7 8.7 8 8 0 0 0 8.7 1.7"></path><path d="M7.4 7.4a8 8 0 0 1 10.3 1 8 8 0 0 1 .9 10.2"></path><path d="m2 2 20 20"></path><path d="M12 12v-2"></path></svg>
+                            </div>
+                            <div class="mt-4">
+                                <span class="text-2xl font-semibold text-white tracking-tight" id="stat-expired">0</span>
+                                <span class="text-[10px] text-rose-500 ml-2 font-mono" data-admin-key="stat_access_removed">Access Removed</span>
+                            </div>
+                        </div>
+                        <div class="glass-panel p-5 rounded-xl flex flex-col justify-between relative overflow-hidden">
+                            <div class="flex justify-between items-start">
+                                <span class="text-[10px] uppercase tracking-wider text-white/40 font-medium" data-admin-key="stat_system_status">System Status</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="server" class="lucide lucide-server w-4 h-4 text-white/40"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"></rect><rect width="20" height="8" x="2" y="14" rx="2" ry="2"></rect><line x1="6" x2="6.01" y1="6" y2="6"></line><line x1="6" x2="6.01" y1="18" y2="18"></line></svg>
+                            </div>
+                            <div class="mt-4 flex items-center gap-2">
+                                <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" id="system-status-dot"></div>
+                                <span class="text-sm font-medium text-white tracking-tight" id="system-status-text">Operational</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Online Users Panel (Hidden by default) -->
+                    <div id="online-users-panel" class="hidden glass-panel rounded-xl overflow-hidden">
+                        <div class="p-4 border-b border-white/5 bg-cyan-500/5 flex justify-between items-center">
+                            <div class="flex items-center gap-2">
+                                <div class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></div>
+                                <h2 class="text-sm font-medium text-white" data-admin-key="live_users_online">Live Users Online</h2>
+                            </div>
+                            <button onclick="toggleOnlinePanel()" class="text-white/40 hover:text-white p-1" title="Close panel" aria-label="Close online users panel">
+                                <i data-lucide="x" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                        <div class="p-4 max-h-64 overflow-y-auto">
+                            <div id="online-users-list" class="space-y-2">
+                                <div class="text-center text-white/30 text-xs py-4" data-admin-key="no_users_online">No users online</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Table Section -->
+                    <div class="glass-panel rounded-xl overflow-hidden flex flex-col">
+                        <div class="p-4 border-b border-white/5 bg-white/[0.02] flex flex-col md:flex-row gap-4 justify-between items-center">
+                            <h2 class="text-sm font-medium text-white" data-admin-key="table_wallet_database">Wallet Database</h2>
+                            
+                            <form id="add-wallet-form" class="flex flex-col md:flex-row items-center gap-2 w-full md:w-auto" onsubmit="event.preventDefault(); addWallet();">
+                                <div class="relative w-full md:w-auto">
+                                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 font-mono text-xs">0x</span>
+                                    <input id="new-wallet-input" type="text" placeholder="Address..." class="input-reset bg-[#0a0a0a] border border-white/10 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white font-mono w-full md:w-48 focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/20 transition-all placeholder-white/20" required="" pattern=".{3,}" title="Invalid address">
+                                </div>
+                                <div class="flex gap-2 w-full md:w-auto">
+                                    <select id="new-wallet-role" class="input-reset bg-[#0a0a0a] border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white focus:border-orange-500/50 transition-all w-full" title="User Role" aria-label="Select user role">
+                                        <option value="User">User</option>
+                                        <option value="Admin">Admin</option>
+                                        <option value="VIP">VIP</option>
+                                    </select>
+                                    <div class="relative w-full">
+                                        <input id="new-wallet-expiry" type="date" class="input-reset bg-[#0a0a0a] border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white font-mono w-full focus:border-orange-500/50 transition-all" title="Expiration Date" aria-label="Expiration date">
+                                    </div>
+                                    <button type="submit" class="bg-white text-black text-xs font-semibold px-4 py-1.5 rounded-lg hover:bg-neutral-200 transition-colors flex items-center gap-1.5 whitespace-nowrap">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="plus" class="lucide lucide-plus w-3 h-3"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg> <span data-admin-key="table_add">Add</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead class="">
+                                    <tr class="border-b border-white/5 bg-white/[0.02]">
+                                        <th class="px-6 py-3 text-[10px] uppercase tracking-wider font-semibold text-white/40" data-admin-key="table_address">Address</th>
+                                        <th class="px-6 py-3 text-[10px] uppercase tracking-wider font-semibold text-white/40" data-admin-key="table_role">Role</th>
+                                        <th class="px-6 py-3 text-[10px] uppercase tracking-wider font-semibold text-white/40" data-admin-key="table_expires_on">Expires On</th>
+                                        <th class="px-6 py-3 text-[10px] uppercase tracking-wider font-semibold text-white/40" data-admin-key="table_status">Status</th>
+                                        <th class="px-6 py-3 text-[10px] uppercase tracking-wider font-semibold text-white/40 text-right" data-admin-key="table_actions">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="wallet-table-body" class="text-xs divide-y divide-white/5"><tr class="group hover:bg-white/[0.02] transition-colors">
+                    <td class="px-6 py-3 font-mono text-white/70 group-hover:text-white transition-colors flex items-center gap-2">
+                        <div class="w-6 h-6 rounded bg-gradient-to-br from-white/10 to-transparent flex items-center justify-center text-[10px] text-white/40">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="wallet" class="lucide lucide-wallet w-3 h-3"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"></path><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"></path></svg>
+                        </div>
+                        <span title="0x71C7656EC7ab88b098defB751B7401B5f6d89A21">0x71C7...9A21</span>
+                    </td>
+                    <td class="px-6 py-3 text-white/50">Admin</td>
+                    <td class="px-6 py-3 font-mono text-[10px] text-rose-500/60 line-through">Dec 31, 2024</td>
+                    <td class="px-6 py-3">
+                        <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-rose-400 bg-rose-500/10 border-rose-500/20 text-[10px] font-medium">
+                            <span class="w-1 h-1 rounded-full bg-rose-400"></span>
+                            Expired
+                        </div>
+                    </td>
+                    <td class="px-6 py-3 text-right">
+                        <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="copyAddr('0x71C7656EC7ab88b098defB751B7401B5f6d89A21')" class="p-1.5 rounded hover:bg-white/10 text-white/40 hover:text-white transition-colors" title="Copy address" aria-label="Copy wallet address">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="copy" class="lucide lucide-copy w-3.5 h-3.5"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>
+                            </button>
+                            <button onclick="toggleStatus(1)" class="p-1.5 rounded hover:bg-white/10 text-white/40 hover:text-orange-400 transition-colors" title="Toggle Active" aria-label="Toggle wallet status">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="power" class="lucide lucide-power w-3.5 h-3.5"><path d="M12 2v10"></path><path d="M18.4 6.6a9 9 0 1 1-12.77.04"></path></svg>
+                            </button>
+                            <button onclick="deleteWallet(1)" class="p-1.5 rounded hover:bg-rose-500/20 text-white/40 hover:text-rose-400 transition-colors" title="Delete wallet" aria-label="Delete wallet">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="trash-2" class="lucide lucide-trash-2 w-3.5 h-3.5"><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            </button>
+                        </div>
+                    </td>
+                </tr><tr class="group hover:bg-white/[0.02] transition-colors">
+                    <td class="px-6 py-3 font-mono text-white/70 group-hover:text-white transition-colors flex items-center gap-2">
+                        <div class="w-6 h-6 rounded bg-gradient-to-br from-white/10 to-transparent flex items-center justify-center text-[10px] text-white/40">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="wallet" class="lucide lucide-wallet w-3 h-3"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"></path><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"></path></svg>
+                        </div>
+                        <span title="0x3D23f89e56E423b098defB751B7401B5f6d8B899">0x3D23...B899</span>
+                    </td>
+                    <td class="px-6 py-3 text-white/50">VIP</td>
+                    <td class="px-6 py-3 font-mono text-[10px] text-rose-500/60 line-through">Oct 1, 2023</td>
+                    <td class="px-6 py-3">
+                        <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-rose-400 bg-rose-500/10 border-rose-500/20 text-[10px] font-medium">
+                            <span class="w-1 h-1 rounded-full bg-rose-400"></span>
+                            Expired
+                        </div>
+                    </td>
+                    <td class="px-6 py-3 text-right">
+                        <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="copyAddr('0x3D23f89e56E423b098defB751B7401B5f6d8B899')" class="p-1.5 rounded hover:bg-white/10 text-white/40 hover:text-white transition-colors" title="Copy address" aria-label="Copy wallet address">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="copy" class="lucide lucide-copy w-3.5 h-3.5"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>
+                            </button>
+                            <button onclick="toggleStatus(2)" class="p-1.5 rounded hover:bg-white/10 text-white/40 hover:text-orange-400 transition-colors" title="Toggle Active" aria-label="Toggle wallet status">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="power" class="lucide lucide-power w-3.5 h-3.5"><path d="M12 2v10"></path><path d="M18.4 6.6a9 9 0 1 1-12.77.04"></path></svg>
+                            </button>
+                            <button onclick="deleteWallet(2)" class="p-1.5 rounded hover:bg-rose-500/20 text-white/40 hover:text-rose-400 transition-colors" title="Delete wallet" aria-label="Delete wallet">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="trash-2" class="lucide lucide-trash-2 w-3.5 h-3.5"><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            </button>
+                        </div>
+                    </td>
+                </tr><tr class="group hover:bg-white/[0.02] transition-colors">
+                    <td class="px-6 py-3 font-mono text-white/70 group-hover:text-white transition-colors flex items-center gap-2">
+                        <div class="w-6 h-6 rounded bg-gradient-to-br from-white/10 to-transparent flex items-center justify-center text-[10px] text-white/40">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="wallet" class="lucide lucide-wallet w-3 h-3"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"></path><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"></path></svg>
+                        </div>
+                        <span title="0x89A887...1B7499">0x89A8...7499</span>
+                    </td>
+                    <td class="px-6 py-3 text-white/50">User</td>
+                    <td class="px-6 py-3 font-mono text-[10px] text-white/30">Never</td>
+                    <td class="px-6 py-3">
+                        <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-orange-400 bg-orange-500/10 border-orange-500/20 text-[10px] font-medium">
+                            <span class="w-1 h-1 rounded-full bg-orange-400"></span>
+                            Revoked
+                        </div>
+                    </td>
+                    <td class="px-6 py-3 text-right">
+                        <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="copyAddr('0x89A887...1B7499')" class="p-1.5 rounded hover:bg-white/10 text-white/40 hover:text-white transition-colors" title="Copy address" aria-label="Copy wallet address">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="copy" class="lucide lucide-copy w-3.5 h-3.5"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>
+                            </button>
+                            <button onclick="toggleStatus(3)" class="p-1.5 rounded hover:bg-white/10 text-white/40 hover:text-orange-400 transition-colors" title="Toggle Active" aria-label="Toggle wallet status">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="power" class="lucide lucide-power w-3.5 h-3.5"><path d="M12 2v10"></path><path d="M18.4 6.6a9 9 0 1 1-12.77.04"></path></svg>
+                            </button>
+                            <button onclick="deleteWallet(3)" class="p-1.5 rounded hover:bg-rose-500/20 text-white/40 hover:text-rose-400 transition-colors" title="Delete wallet" aria-label="Delete wallet">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="trash-2" class="lucide lucide-trash-2 w-3.5 h-3.5"><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            </button>
+                        </div>
+                    </td>
+                </tr><tr class="group hover:bg-white/[0.02] transition-colors">
+                    <td class="px-6 py-3 font-mono text-white/70 group-hover:text-white transition-colors flex items-center gap-2">
+                        <div class="w-6 h-6 rounded bg-gradient-to-br from-white/10 to-transparent flex items-center justify-center text-[10px] text-white/40">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="wallet" class="lucide lucide-wallet w-3 h-3"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"></path><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"></path></svg>
+                        </div>
+                        <span title="0xDEMO...USER001">0xDEMO...R001</span>
+                    </td>
+                    <td class="px-6 py-3 text-white/50">User</td>
+                    <td class="px-6 py-3 font-mono text-[10px] text-rose-500/60 line-through">May 15, 2024</td>
+                    <td class="px-6 py-3">
+                        <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-rose-400 bg-rose-500/10 border-rose-500/20 text-[10px] font-medium">
+                            <span class="w-1 h-1 rounded-full bg-rose-400"></span>
+                            Expired
+                        </div>
+                    </td>
+                    <td class="px-6 py-3 text-right">
+                        <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="copyAddr('0xDEMO...USER001')" class="p-1.5 rounded hover:bg-white/10 text-white/40 hover:text-white transition-colors" title="Copy address" aria-label="Copy wallet address">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="copy" class="lucide lucide-copy w-3.5 h-3.5"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>
+                            </button>
+                            <button onclick="toggleStatus(4)" class="p-1.5 rounded hover:bg-white/10 text-white/40 hover:text-orange-400 transition-colors" title="Toggle Active" aria-label="Toggle wallet status">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="power" class="lucide lucide-power w-3.5 h-3.5"><path d="M12 2v10"></path><path d="M18.4 6.6a9 9 0 1 1-12.77.04"></path></svg>
+                            </button>
+                            <button onclick="deleteWallet(4)" class="p-1.5 rounded hover:bg-rose-500/20 text-white/40 hover:text-rose-400 transition-colors" title="Delete wallet" aria-label="Delete wallet">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="trash-2" class="lucide lucide-trash-2 w-3.5 h-3.5"><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            </button>
+                        </div>
+                    </td>
+                </tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VIEW: ACTIVITY LOG -->
+                <div id="view-activity" class="space-y-8 hidden animate-fade-in">
+                    <div class="flex items-end justify-between">
+                        <div>
+                            <h1 class="text-2xl font-semibold tracking-tight text-white mb-1">Activity Log</h1>
+                            <p class="text-sm text-white/40">Audit trail of system modifications and access events.</p>
+                        </div>
+                        <button onclick="clearActivities()" class="text-xs text-white/40 hover:text-rose-400 px-3 py-1.5 rounded border border-white/10 hover:border-rose-500/30 transition-colors">
+                            Clear Log
+                        </button>
+                    </div>
+
+                    <div class="glass-panel rounded-xl p-6">
+                        <div class="space-y-6" id="activity-feed">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VIEW: ONLINE USERS -->
+                <div id="view-online" class="space-y-8 hidden animate-fade-in">
+                    <div class="flex items-end justify-between">
+                        <div>
+                            <h1 class="text-2xl font-semibold tracking-tight text-white mb-1">Online Users</h1>
+                            <p class="text-sm text-white/40">Real-time view of connected users across all pages.</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></div>
+                            <span class="text-xs text-cyan-400 font-mono" id="online-count-label">0 users online</span>
+                        </div>
+                    </div>
+
+                    <!-- Online Users Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="online-users-grid">
+                        <div class="col-span-full text-center py-12 text-white/30">
+                            <i data-lucide="users" class="w-12 h-12 mx-auto mb-4 opacity-30"></i>
+                            <p>No users currently online</p>
+                        </div>
+                    </div>
+
+                    <!-- Connection Stats -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="glass-panel p-4 rounded-xl">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center">
+                                    <i data-lucide="monitor" class="w-5 h-5 text-cyan-400"></i>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] text-white/40 uppercase tracking-wider">Dashboard Users</p>
+                                    <p class="text-lg font-semibold text-white" id="stat-dashboard-users">0</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="glass-panel p-4 rounded-xl">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                                    <i data-lucide="shield" class="w-5 h-5 text-orange-400"></i>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] text-white/40 uppercase tracking-wider">Admin Users</p>
+                                    <p class="text-lg font-semibold text-white" id="stat-admin-users">0</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="glass-panel p-4 rounded-xl">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                                    <i data-lucide="clock" class="w-5 h-5 text-emerald-400"></i>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] text-white/40 uppercase tracking-wider">Avg Session</p>
+                                    <p class="text-lg font-semibold text-white" id="stat-avg-session">--</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VIEW: SETTINGS -->
+                <div id="view-settings" class="space-y-8 hidden animate-fade-in">
+                    <div>
+                        <h1 class="text-2xl font-semibold tracking-tight text-white mb-1">Settings</h1>
+                        <p class="text-sm text-white/40">System configuration and security preferences.</p>
+                    </div>
+
+                    <div class="grid gap-6">
+                        <!-- General Configuration -->
+                        <div class="glass-panel p-6 rounded-xl space-y-4">
+                            <h3 class="text-sm font-medium text-white flex items-center gap-2">
+                                <i data-lucide="sliders" class="w-4 h-4"></i> General Configuration
+                            </h3>
+                            <div class="space-y-4 pt-2">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-xs text-white">Maintenance Mode</p>
+                                        <p class="text-[10px] text-white/40">Disables all non-admin access to the dashboard.</p>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="setting-maintenance" onchange="updateSetting('maintenance', this.checked)" class="sr-only peer" title="Toggle maintenance mode" aria-label="Toggle maintenance mode">
+                                        <div class="w-9 h-5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500"></div>
+                                    </label>
+                                </div>
+                                <div class="border-t border-white/5 pt-4 flex items-center justify-between">
+                                    <div>
+                                        <p class="text-xs text-white">Auto-Revoke Expired</p>
+                                        <p class="text-[10px] text-white/40">Automatically deactivate expired wallets daily.</p>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="setting-autorevoke" checked onchange="updateSetting('autoRevoke', this.checked)" class="sr-only peer" title="Toggle auto-revoke" aria-label="Toggle auto-revoke expired wallets">
+                                        <div class="w-9 h-5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500"></div>
+                                    </label>
+                                </div>
+                                <div class="border-t border-white/5 pt-4 flex items-center justify-between">
+                                    <div>
+                                        <p class="text-xs text-white">Activity Logging</p>
+                                        <p class="text-[10px] text-white/40">Log all user actions and system events.</p>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="setting-logging" checked onchange="updateSetting('logging', this.checked)" class="sr-only peer" title="Toggle activity logging" aria-label="Toggle activity logging">
+                                        <div class="w-9 h-5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500"></div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Scanner Configuration -->
+                        <div class="glass-panel p-6 rounded-xl space-y-4">
+                            <h3 class="text-sm font-medium text-white flex items-center gap-2">
+                                <i data-lucide="radar" class="w-4 h-4"></i> Scanner Settings
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                                <div>
+                                    <label class="text-[10px] uppercase tracking-wider text-white/40 font-semibold mb-2 block">Scan Interval (minutes)</label>
+                                    <input type="number" id="setting-scan-interval" value="10" min="1" max="60" onchange="updateSetting('scanInterval', this.value)" class="w-full input-reset bg-[#0a0a0a] border border-white/10 rounded-lg px-3 py-2 text-xs text-white font-mono focus:border-orange-500/50" title="Scan interval in minutes" aria-label="Scan interval in minutes">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] uppercase tracking-wider text-white/40 font-semibold mb-2 block">Min Confluence Score</label>
+                                    <input type="number" id="setting-min-confluence" value="55" min="0" max="100" onchange="updateSetting('minConfluence', this.value)" class="w-full input-reset bg-[#0a0a0a] border border-white/10 rounded-lg px-3 py-2 text-xs text-white font-mono focus:border-orange-500/50" title="Minimum confluence score" aria-label="Minimum confluence score">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] uppercase tracking-wider text-white/40 font-semibold mb-2 block">Min Volume (USDT)</label>
+                                    <input type="number" id="setting-min-volume" value="10000000" min="1000000" step="1000000" onchange="updateSetting('minVolume', this.value)" class="w-full input-reset bg-[#0a0a0a] border border-white/10 rounded-lg px-3 py-2 text-xs text-white font-mono focus:border-orange-500/50" title="Minimum volume in USDT" aria-label="Minimum volume in USDT">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] uppercase tracking-wider text-white/40 font-semibold mb-2 block">Max Symbols per Scan</label>
+                                    <input type="number" id="setting-max-symbols" value="100" min="10" max="500" onchange="updateSetting('maxSymbols', this.value)" class="w-full input-reset bg-[#0a0a0a] border border-white/10 rounded-lg px-3 py-2 text-xs text-white font-mono focus:border-orange-500/50" title="Maximum symbols per scan" aria-label="Maximum symbols per scan">
+                                </div>
+                            </div>
+                            <div class="border-t border-white/5 pt-4">
+                                <button onclick="triggerManualScan()" class="w-full bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold px-4 py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
+                                    <i data-lucide="scan" class="w-4 h-4"></i> Trigger Manual Scan Now
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Security Settings -->
+                        <div class="glass-panel p-6 rounded-xl space-y-4">
+                            <h3 class="text-sm font-medium text-white flex items-center gap-2">
+                                <i data-lucide="shield" class="w-4 h-4"></i> Security & Access
+                            </h3>
+                            <div class="space-y-4 pt-2">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-xs text-white">Require Wallet Signature</p>
+                                        <p class="text-[10px] text-white/40">Users must sign a message to authenticate.</p>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="setting-require-sig" checked onchange="updateSetting('requireSignature', this.checked)" class="sr-only peer" title="Require wallet signature" aria-label="Require wallet signature">
+                                        <div class="w-9 h-5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500"></div>
+                                    </label>
+                                </div>
+                                <div class="border-t border-white/5 pt-4 flex items-center justify-between">
+                                    <div>
+                                        <p class="text-xs text-white">Session Duration</p>
+                                        <p class="text-[10px] text-white/40">How long users stay logged in.</p>
+                                    </div>
+                                    <select id="setting-session-duration" onchange="updateSetting('sessionDuration', this.value)" class="input-reset bg-[#0a0a0a] border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white focus:border-orange-500/50" title="Session duration" aria-label="Session duration">
+                                        <option value="3600000">1 Hour</option>
+                                        <option value="21600000">6 Hours</option>
+                                        <option value="43200000">12 Hours</option>
+                                        <option value="86400000" selected>24 Hours</option>
+                                        <option value="604800000">7 Days</option>
+                                    </select>
+                                </div>
+                                <div class="border-t border-white/5 pt-4">
+                                    <label class="text-[10px] uppercase tracking-wider text-white/40 font-semibold mb-2 block">Default New User Role</label>
+                                    <select id="setting-default-role" onchange="updateSetting('defaultRole', this.value)" class="w-full input-reset bg-[#0a0a0a] border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:border-orange-500/50" title="Default new user role" aria-label="Default new user role">
+                                        <option value="User" selected>User</option>
+                                        <option value="VIP">VIP</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Notification Settings -->
+                        <div class="glass-panel p-6 rounded-xl space-y-4">
+                            <h3 class="text-sm font-medium text-white flex items-center gap-2">
+                                <i data-lucide="bell" class="w-4 h-4"></i> Notifications
+                            </h3>
+                            <div class="space-y-4 pt-2">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-xs text-white">New User Alerts</p>
+                                        <p class="text-[10px] text-white/40">Get notified when new users register.</p>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="setting-alert-newuser" checked onchange="updateSetting('alertNewUser', this.checked)" class="sr-only peer" title="New user alerts" aria-label="Toggle new user alerts">
+                                        <div class="w-9 h-5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500"></div>
+                                    </label>
+                                </div>
+                                <div class="border-t border-white/5 pt-4 flex items-center justify-between">
+                                    <div>
+                                        <p class="text-xs text-white">Target Hit Alerts</p>
+                                        <p class="text-[10px] text-white/40">Notify when price targets are hit.</p>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="setting-alert-target" checked onchange="updateSetting('alertTargetHit', this.checked)" class="sr-only peer" title="Target hit alerts" aria-label="Toggle target hit alerts">
+                                        <div class="w-9 h-5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500"></div>
+                                    </label>
+                                </div>
+                                <div class="border-t border-white/5 pt-4 flex items-center justify-between">
+                                    <div>
+                                        <p class="text-xs text-white">System Error Alerts</p>
+                                        <p class="text-[10px] text-white/40">Get notified on system errors.</p>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="setting-alert-error" checked onchange="updateSetting('alertErrors', this.checked)" class="sr-only peer" title="System error alerts" aria-label="Toggle system error alerts">
+                                        <div class="w-9 h-5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500"></div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Database Actions -->
+                        <div class="glass-panel p-6 rounded-xl space-y-4">
+                            <h3 class="text-sm font-medium text-white flex items-center gap-2">
+                                <i data-lucide="database" class="w-4 h-4"></i> Database Actions
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
+                                <button onclick="exportWallets()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-medium px-4 py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
+                                    <i data-lucide="download" class="w-4 h-4"></i> Export Wallets
+                                </button>
+                                <button onclick="purgeExpired()" class="bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 text-xs font-medium px-4 py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
+                                    <i data-lucide="trash" class="w-4 h-4"></i> Purge Expired
+                                </button>
+                                <button onclick="clearOpportunities()" class="bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-amber-400 text-xs font-medium px-4 py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
+                                    <i data-lucide="eraser" class="w-4 h-4"></i> Clear Opportunities
+                                </button>
+                            </div>
+                            <div class="border-t border-white/5 pt-4">
+                                <button onclick="refreshFromSupabase()" class="w-full bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-400 text-xs font-medium px-4 py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
+                                    <i data-lucide="refresh-cw" class="w-4 h-4"></i> Refresh All Data from Supabase
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- API Configuration -->
+                        <div class="glass-panel p-6 rounded-xl space-y-4">
+                            <h3 class="text-sm font-medium text-white flex items-center gap-2">
+                                <i data-lucide="key" class="w-4 h-4"></i> API Configuration
+                            </h3>
+                            <div class="grid gap-4 pt-2">
+                                <div>
+                                    <label class="text-[10px] uppercase tracking-wider text-white/40 font-semibold mb-2 block">Supabase URL</label>
+                                    <div class="flex gap-2">
+                                        <input type="text" id="api-supabase-url" value="https://dbxzwynknesxuvtlissd.supabase.co" class="flex-1 input-reset bg-[#0a0a0a] border border-white/10 rounded-lg px-3 py-2 text-xs text-white font-mono" readonly title="Supabase URL" aria-label="Supabase URL">
+                                        <button onclick="copyToClipboard(document.getElementById('api-supabase-url').value)" class="px-3 py-2 border border-white/10 rounded-lg text-white/60 hover:text-white hover:bg-white/5" title="Copy URL" aria-label="Copy Supabase URL">
+                                            <i data-lucide="copy" class="w-3 h-3"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] uppercase tracking-wider text-white/40 font-semibold mb-2 block">Edge Function Endpoint</label>
+                                    <div class="flex gap-2">
+                                        <input type="text" id="api-edge-url" value="https://dbxzwynknesxuvtlissd.supabase.co/functions/v1/" class="flex-1 input-reset bg-[#0a0a0a] border border-white/10 rounded-lg px-3 py-2 text-xs text-white font-mono" readonly title="Edge Function endpoint" aria-label="Edge Function endpoint">
+                                        <button onclick="testEdgeFunction()" class="px-3 py-2 border border-emerald-500/20 rounded-lg text-emerald-400 hover:bg-emerald-500/10 text-xs">
+                                            Test
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Toast -->
+        <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300">
+            <div class="glass-panel bg-[#0a0a0a] px-4 py-3 rounded-lg flex items-center gap-3 shadow-2xl border-l-2 border-emerald-500">
+                <div class="bg-emerald-500/10 p-1.5 rounded-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="check" class="lucide lucide-check w-3.5 h-3.5 text-emerald-500"><path d="M20 6 9 17l-5-5"></path></svg>
+                </div>
+                <div>
+                    <h4 class="text-xs font-medium text-white" id="toast-title">Success</h4>
+                    <p class="text-[10px] text-white/50" id="toast-message">Operation completed.</p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script class="">
+        // Init Icons
+        lucide.createIcons();
+
+        // --- SUPABASE CONFIG ---
+        const SUPABASE_URL = 'https://dbxzwynknesxuvtlissd.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRieHp3eW5rbmVzeHV2dGxpc3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg4MDY0OTYsImV4cCI6MjA4NDM4MjQ5Nn0.far-1warbl3rI1oWyJy9h4O8ZmMxfhi38LRDNXQZ9v8';
+
+        // Supabase API helper
+        async function supabaseRequest(endpoint, options = {}) {
+            const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
+            const headers = {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                'Content-Type': 'application/json',
+                'Prefer': options.prefer || 'return=representation'
+            };
+            
+            try {
+                const response = await fetch(url, {
+                    method: options.method || 'GET',
+                    headers,
+                    body: options.body ? JSON.stringify(options.body) : undefined
+                });
+                
+                if (!response.ok) {
+                    const error = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${error}`);
+                }
+                
+                const text = await response.text();
+                return text ? JSON.parse(text) : null;
+            } catch (e) {
+                console.error('Supabase error:', e);
+                throw e;
+            }
+        }
+
+        // --- STATE MANAGEMENT ---
+        let wallets = [];
+
+        let activities = [
+            { id: 1, action: "System Check", detail: "Routine integrity check completed", time: "2 mins ago", icon: "shield-check", color: "text-emerald-500" },
+            { id: 2, action: "Connected to Supabase", detail: "Whitelist loaded from database", time: "Just now", icon: "database", color: "text-blue-500" },
+        ];
+
+        // Load wallets from Supabase
+        async function loadWallets() {
+            try {
+                const data = await supabaseRequest('whitelist?select=*&order=created_at.desc');
+                wallets = (data || []).map(w => ({
+                    id: w.id,
+                    address: w.wallet_address,
+                    role: w.role || 'User',
+                    expiry: w.expires_at ? w.expires_at.split('T')[0] : '',
+                    status: w.is_active ? 'Active' : 'Revoked',
+                    created_at: w.created_at
+                }));
+                renderTable();
+                addActivity("Database Sync", `Loaded ${wallets.length} wallets from Supabase`, "database", "text-blue-500");
+            } catch (e) {
+                console.error('Failed to load wallets:', e);
+                showToast('Error', 'Failed to load whitelist from database');
+            }
+        }
+
+        // --- NAVIGATION ---
+        function switchView(viewName) {
+            // Hide all views
+            ['access', 'activity', 'settings', 'online'].forEach(v => {
+                const viewEl = document.getElementById('view-' + v);
+                if (viewEl) viewEl.classList.add('hidden');
+                
+                // Reset Nav Styling
+                const btn = document.getElementById('nav-' + v);
+                if (btn) {
+                    btn.classList.remove('bg-white/5', 'text-white/90');
+                    btn.classList.add('text-white/40');
+                    
+                    // Reset Icon Color
+                    const icon = btn.querySelector('i');
+                    if (icon) icon.classList.remove('text-orange-500');
+                }
+            });
+
+            // Show selected view
+            const targetView = document.getElementById('view-' + viewName);
+            if (targetView) targetView.classList.remove('hidden');
+            
+            // Highlight Nav
+            const activeBtn = document.getElementById('nav-' + viewName);
+            if (activeBtn) {
+                activeBtn.classList.add('bg-white/5', 'text-white/90');
+                activeBtn.classList.remove('text-white/40');
+                const icon = activeBtn.querySelector('i');
+                if (icon) icon.classList.add('text-orange-500');
+            }
+
+            // Update Header Title
+            const titles = { 'access': 'Access Control', 'activity': 'Activity Log', 'settings': 'Settings', 'online': 'Online Users' };
+            document.getElementById('page-title').innerText = titles[viewName] || viewName;
+
+            // Refresh content if needed
+            if (viewName === 'activity') renderActivity();
+            if (viewName === 'online') renderOnlineUsersView();
+        }
+
+        // --- CORE FUNCTIONS ---
+
+        const formatDate = (dateString) => {
+            if(!dateString) return "Never";
+            const d = new Date(dateString);
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        };
+
+        const truncate = (str) => {
+            if(str.length < 15) return str;
+            return str.substring(0, 6) + '...' + str.substring(str.length - 4);
+        };
+
+        const checkExpiration = () => {
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            
+            let changed = false;
+
+            wallets.forEach(w => {
+                if (w.expiry) {
+                    const expDate = new Date(w.expiry);
+                    if (expDate < today && w.status !== 'Expired') {
+                        w.status = 'Expired';
+                        addActivity("Auto-Expiration", `Removed access for ${truncate(w.address)}`, "timer-off", "text-rose-500");
+                        changed = true;
+                    }
+                }
+            });
+            return changed;
+        };
+
+        function renderTable() {
+            checkExpiration(); // Run check before render
+
+            const tableBody = document.getElementById('wallet-table-body');
+            const statTotal = document.getElementById('stat-total');
+            const statExpired = document.getElementById('stat-expired');
+            
+            tableBody.innerHTML = '';
+            
+            // Counts
+            const activeCount = wallets.filter(w => w.status === 'Active').length;
+            statTotal.innerText = activeCount.toLocaleString();
+            statExpired.innerText = wallets.filter(w => w.status === 'Expired').length.toLocaleString();
+
+            wallets.forEach(wallet => {
+                const tr = document.createElement('tr');
+                tr.className = "group hover:bg-white/[0.02] transition-colors";
+                
+                // Status Styling
+                let statusClass = "", statusDot = "";
+                
+                if(wallet.status === 'Active') {
+                    statusClass = "text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
+                    statusDot = "bg-emerald-400";
+                } else if (wallet.status === 'Expired') {
+                    statusClass = "text-rose-400 bg-rose-500/10 border-rose-500/20";
+                    statusDot = "bg-rose-400";
+                } else {
+                    statusClass = "text-orange-400 bg-orange-500/10 border-orange-500/20";
+                    statusDot = "bg-orange-400";
+                }
+
+                // Expiry styling
+                const expiryText = formatDate(wallet.expiry);
+                const expiryClass = wallet.status === 'Expired' ? 'text-rose-500/60 line-through' : 'text-white/30';
+
+                tr.innerHTML = `
+                    <td class="px-6 py-3 font-mono text-white/70 group-hover:text-white transition-colors flex items-center gap-2">
+                        <div class="w-6 h-6 rounded bg-gradient-to-br from-white/10 to-transparent flex items-center justify-center text-[10px] text-white/40">
+                            <i data-lucide="wallet" class="w-3 h-3"></i>
+                        </div>
+                        <span title="${wallet.address}">${truncate(wallet.address)}</span>
+                        ${onlineUsers.has(wallet.address) ? '<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse ml-1" title="Online"></span>' : ''}
+                    </td>
+                    <td class="px-6 py-3">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-medium ${wallet.role === 'Admin' ? 'bg-orange-500/10 text-orange-400' : wallet.role === 'VIP' ? 'bg-purple-500/10 text-purple-400' : 'bg-white/5 text-white/50'}">${wallet.role}</span>
+                    </td>
+                    <td class="px-6 py-3 font-mono text-[10px] ${expiryClass}">${expiryText}</td>
+                    <td class="px-6 py-3">
+                        <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border ${statusClass} text-[10px] font-medium">
+                            <span class="w-1 h-1 rounded-full ${statusDot}"></span>
+                            ${wallet.status}
+                        </div>
+                    </td>
+                    <td class="px-6 py-3 text-right">
+                        <div class="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="copyAddr('${wallet.address}')" class="p-1.5 rounded hover:bg-white/10 text-white/40 hover:text-white transition-colors" title="Copy Address">
+                                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button onclick="editWallet(${wallet.id})" class="p-1.5 rounded hover:bg-blue-500/20 text-white/40 hover:text-blue-400 transition-colors" title="Change Role">
+                                <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button onclick="extendExpiry(${wallet.id})" class="p-1.5 rounded hover:bg-emerald-500/20 text-white/40 hover:text-emerald-400 transition-colors" title="Extend Expiry">
+                                <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button onclick="toggleStatus(${wallet.id})" class="p-1.5 rounded hover:bg-orange-500/20 text-white/40 hover:text-orange-400 transition-colors" title="Toggle Active">
+                                <i data-lucide="power" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button onclick="deleteWallet(${wallet.id})" class="p-1.5 rounded hover:bg-rose-500/20 text-white/40 hover:text-rose-400 transition-colors" title="Delete">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+            lucide.createIcons();
+        }
+
+        function renderActivity() {
+            const feed = document.getElementById('activity-feed');
+            feed.innerHTML = '';
+
+            activities.forEach((act, index) => {
+                const isLast = index === activities.length - 1;
+                const line = isLast ? '' : '<div class="absolute left-2.5 top-8 bottom-0 w-px bg-white/5"></div>';
+                
+                const item = document.createElement('div');
+                item.className = "relative pl-8";
+                item.innerHTML = `
+                    ${line}
+                    <div class="absolute left-0 top-1 w-5 h-5 rounded-full bg-[#0a0a0a] border border-white/10 flex items-center justify-center z-10">
+                        <i data-lucide="${act.icon}" class="w-2.5 h-2.5 ${act.color}"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-medium text-white">${act.action}</p>
+                        <p class="text-[10px] text-white/40 mt-0.5">${act.detail}</p>
+                        <p class="text-[10px] font-mono text-white/20 mt-1">${act.time}</p>
+                    </div>
+                `;
+                feed.appendChild(item);
+            });
+            lucide.createIcons();
+        }
+
+        function addActivity(action, detail, icon = "activity", color = "text-white") {
+            activities.unshift({
+                id: Date.now(),
+                action, detail, icon, color,
+                time: "Just now"
+            });
+            // Keep log short
+            if(activities.length > 20) activities.pop();
+        }
+
+        async function addWallet() {
+            const input = document.getElementById('new-wallet-input');
+            const roleSelect = document.getElementById('new-wallet-role');
+            const expiryInput = document.getElementById('new-wallet-expiry');
+            const addr = input.value.trim();
+
+            if(!addr) {
+                showToast('Error', 'Please enter a wallet address');
+                return;
+            }
+
+            const finalAddr = addr.startsWith('0x') ? addr : '0x' + addr;
+            
+            // Validate wallet address format
+            if (!/^0x[a-fA-F0-9]{40}$/.test(finalAddr)) {
+                showToast('Error', 'Invalid wallet address format');
+                return;
+            }
+            
+            try {
+                // Insert into Supabase
+                const expiryDate = expiryInput.value ? new Date(expiryInput.value).toISOString() : null;
+                
+                const data = await supabaseRequest('whitelist', {
+                    method: 'POST',
+                    body: {
+                        wallet_address: finalAddr.toLowerCase(),
+                        role: roleSelect.value,
+                        is_active: true,
+                        expires_at: expiryDate
+                    }
+                });
+
+                addActivity("Wallet Added", `Added ${roleSelect.value} ${truncate(finalAddr)}`, "plus-circle", "text-emerald-500");
+
+                input.value = '';
+                expiryInput.value = '';
+                
+                // Reload from database
+                await loadWallets();
+                showToast('Wallet Added', `Access granted to ${truncate(finalAddr)}`);
+            } catch (e) {
+                console.error('Failed to add wallet:', e);
+                if (e.message.includes('duplicate') || e.message.includes('23505')) {
+                    showToast('Error', 'Wallet already exists in whitelist');
+                } else {
+                    showToast('Error', 'Failed to add wallet: ' + e.message);
+                }
+            }
+        }
+
+        async function toggleStatus(id) {
+            const wallet = wallets.find(w => w.id === id);
+            if(wallet) {
+                const newStatus = wallet.status === 'Active' ? false : true;
+                
+                try {
+                    await supabaseRequest(`whitelist?id=eq.${id}`, {
+                        method: 'PATCH',
+                        body: { is_active: newStatus }
+                    });
+                    
+                    if(!newStatus) {
+                        addActivity("Access Revoked", `Manual revocation for ${truncate(wallet.address)}`, "ban", "text-orange-500");
+                    } else {
+                        addActivity("Access Restored", `Restored access for ${truncate(wallet.address)}`, "check-circle", "text-emerald-500");
+                    }
+                    
+                    await loadWallets();
+                } catch (e) {
+                    console.error('Failed to toggle status:', e);
+                    showToast('Error', 'Failed to update status');
+                }
+            }
+        }
+
+        async function deleteWallet(id) {
+            if(confirm('Are you sure you want to remove this wallet from the whitelist?')) {
+                try {
+                    await supabaseRequest(`whitelist?id=eq.${id}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    addActivity("Database Update", `Deleted wallet record`, "trash-2", "text-white/40");
+                    await loadWallets();
+                    showToast('Wallet Removed', 'Address removed from whitelist');
+                } catch (e) {
+                    console.error('Failed to delete wallet:', e);
+                    showToast('Error', 'Failed to delete wallet');
+                }
+            }
+        }
+
+        function copyAddr(text) {
+            navigator.clipboard.writeText(text);
+            showToast('Copied', 'Address copied to clipboard');
+        }
+
+        function showToast(title, msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-title').innerText = title;
+            document.getElementById('toast-message').innerText = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // --- REALTIME PRESENCE FOR ONLINE USERS ---
+        let supabaseClient = null;
+        let presenceChannel = null;
+        let onlineUsers = new Map();
+
+        function initPresenceTracking() {
+            try {
+                supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                
+                // Subscribe to dashboard presence channel
+                presenceChannel = supabaseClient.channel('dashboard_presence', {
+                    config: {
+                        presence: { key: 'admin_' + Date.now() }
+                    }
+                });
+
+                presenceChannel
+                    .on('presence', { event: 'sync' }, () => {
+                        const state = presenceChannel.presenceState();
+                        onlineUsers.clear();
+                        
+                        Object.keys(state).forEach(key => {
+                            state[key].forEach(presence => {
+                                onlineUsers.set(presence.wallet || key, {
+                                    wallet: presence.wallet,
+                                    joinedAt: presence.joined_at,
+                                    page: presence.page || 'dashboard'
+                                });
+                            });
+                        });
+                        
+                        updateOnlineCount();
+                    })
+                    .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+                        newPresences.forEach(presence => {
+                            onlineUsers.set(presence.wallet || key, {
+                                wallet: presence.wallet,
+                                joinedAt: presence.joined_at,
+                                page: presence.page || 'dashboard'
+                            });
+                            addActivity('User Online', `${truncate(presence.wallet || 'Unknown')} joined the dashboard`, 'user-check', 'text-cyan-500');
+                        });
+                        updateOnlineCount();
+                    })
+                    .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
+                        leftPresences.forEach(presence => {
+                            onlineUsers.delete(presence.wallet || key);
+                            addActivity('User Offline', `${truncate(presence.wallet || 'Unknown')} left the dashboard`, 'user-x', 'text-white/40');
+                        });
+                        updateOnlineCount();
+                    })
+                    .subscribe(async (status) => {
+                        if (status === 'SUBSCRIBED') {
+                            // Get admin wallet from session
+                            const authData = sessionStorage.getItem('shdwxbt_auth');
+                            let wallet = 'admin';
+                            if (authData) {
+                                try {
+                                    const auth = JSON.parse(authData);
+                                    wallet = auth.wallet || 'admin';
+                                } catch(e) {}
+                            }
+                            
+                            // Track this admin as online
+                            await presenceChannel.track({
+                                wallet: wallet,
+                                page: 'admin',
+                                joined_at: new Date().toISOString()
+                            });
+                            
+                            console.log('✅ Admin presence tracking active');
+                        }
+                    });
+            } catch (e) {
+                console.error('Failed to init presence tracking:', e);
+            }
+        }
+
+        function updateOnlineCount() {
+            const count = onlineUsers.size;
+            const statOnline = document.getElementById('stat-online');
+            const navBadge = document.getElementById('nav-online-badge');
+            
+            if (statOnline) {
+                statOnline.innerText = count.toString();
+                statOnline.classList.add('scale-110');
+                setTimeout(() => statOnline.classList.remove('scale-110'), 200);
+            }
+            
+            // Update nav badge
+            if (navBadge) {
+                navBadge.textContent = count.toString();
+                if (count > 0) {
+                    navBadge.classList.remove('hidden');
+                    navBadge.classList.add('md:flex');
+                }
+            }
+            
+            // Also update the online users list panel and view
+            renderOnlineUsersList();
+            renderOnlineUsersView();
+        }
+
+        // Toggle online users panel visibility
+        function toggleOnlinePanel() {
+            const panel = document.getElementById('online-users-panel');
+            panel.classList.toggle('hidden');
+            if (!panel.classList.contains('hidden')) {
+                renderOnlineUsersList();
+            }
+        }
+
+        // Render Online Users full page view
+        function renderOnlineUsersView() {
+            const grid = document.getElementById('online-users-grid');
+            const countLabel = document.getElementById('online-count-label');
+            const dashboardStat = document.getElementById('stat-dashboard-users');
+            const adminStat = document.getElementById('stat-admin-users');
+            const navBadge = document.getElementById('nav-online-badge');
+            
+            if (!grid) return;
+
+            const users = Array.from(onlineUsers.values());
+            const dashboardUsers = users.filter(u => u.page !== 'admin');
+            const adminUsers = users.filter(u => u.page === 'admin');
+            
+            // Update stats
+            if (countLabel) countLabel.textContent = `${users.length} user${users.length !== 1 ? 's' : ''} online`;
+            if (dashboardStat) dashboardStat.textContent = dashboardUsers.length;
+            if (adminStat) adminStat.textContent = adminUsers.length;
+            if (navBadge) navBadge.textContent = users.length;
+
+            if (users.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full text-center py-12 text-white/30">
+                        <i data-lucide="users" class="w-12 h-12 mx-auto mb-4 opacity-30"></i>
+                        <p>No users currently online</p>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            let html = '';
+            users.forEach((user, index) => {
+                const wallet = user.wallet || 'Unknown';
+                const page = user.page || 'dashboard';
+                const isAdmin = page === 'admin';
+                const joinedAt = user.joinedAt ? new Date(user.joinedAt) : new Date();
+                const duration = Math.floor((Date.now() - joinedAt.getTime()) / 60000);
+                const durationText = duration < 1 ? 'Just now' : duration < 60 ? `${duration}m ago` : `${Math.floor(duration/60)}h ${duration%60}m`;
+                
+                // Find wallet info from wallets array
+                const walletInfo = wallets.find(w => w.address.toLowerCase() === wallet.toLowerCase());
+                const role = walletInfo?.role || 'User';
+                
+                html += `
+                    <div class="glass-panel rounded-xl p-4 hover:bg-white/[0.02] transition-all">
+                        <div class="flex items-start justify-between mb-3">
+                            <div class="flex items-center gap-3">
+                                <div class="relative">
+                                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br ${isAdmin ? 'from-orange-500/20 to-orange-600/5' : 'from-cyan-500/20 to-cyan-600/5'} flex items-center justify-center">
+                                        <i data-lucide="${isAdmin ? 'shield' : 'user'}" class="w-6 h-6 ${isAdmin ? 'text-orange-400' : 'text-cyan-400'}"></i>
+                                    </div>
+                                    <div class="absolute -bottom-1 -right-1 w-3 h-3 rounded-full bg-emerald-500 border-2 border-[#0a0a0a] animate-pulse"></div>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-mono text-white">${truncate(wallet)}</p>
+                                    <div class="flex items-center gap-2 mt-0.5">
+                                        <span class="text-[10px] px-1.5 py-0.5 rounded ${role === 'Admin' ? 'bg-orange-500/10 text-orange-400' : role === 'VIP' ? 'bg-purple-500/10 text-purple-400' : 'bg-white/5 text-white/40'}">${role}</span>
+                                        <span class="text-[10px] text-white/30">•</span>
+                                        <span class="text-[10px] text-white/40">${isAdmin ? 'Admin Panel' : 'Dashboard'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between text-[10px] text-white/30 border-t border-white/5 pt-3 mt-3">
+                            <span><i data-lucide="clock" class="w-3 h-3 inline mr-1"></i> ${durationText}</span>
+                            <div class="flex items-center gap-1">
+                                <button onclick="copyAddr('${wallet}')" class="p-1 rounded hover:bg-white/10 text-white/40 hover:text-white">
+                                    <i data-lucide="copy" class="w-3 h-3"></i>
+                                </button>
+                                <button onclick="messageUser('${wallet}')" class="p-1 rounded hover:bg-blue-500/20 text-white/40 hover:text-blue-400">
+                                    <i data-lucide="message-circle" class="w-3 h-3"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            grid.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        function messageUser(wallet) {
+            showToast('Coming Soon', 'Direct messaging feature coming soon');
+        }
+
+        function clearActivities() {
+            if (confirm('Clear all activity logs?')) {
+                activities = [];
+                renderActivity();
+                showToast('Cleared', 'Activity log cleared');
+            }
+        }
+
+        // Render the list of online users
+        function renderOnlineUsersList() {
+            const listEl = document.getElementById('online-users-list');
+            if (!listEl) return;
+
+            if (onlineUsers.size === 0) {
+                listEl.innerHTML = '<div class="text-center text-white/30 text-xs py-4">No users online</div>';
+                return;
+            }
+
+            let html = '';
+            onlineUsers.forEach((user, key) => {
+                const wallet = user.wallet || key;
+                const page = user.page || 'dashboard';
+                const joinedAt = user.joinedAt ? new Date(user.joinedAt).toLocaleTimeString() : 'Unknown';
+                const isAdmin = page === 'admin';
+                
+                html += `
+                    <div class="flex items-center justify-between p-2 rounded-lg bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+                        <div class="flex items-center gap-3">
+                            <div class="relative">
+                                <div class="w-8 h-8 rounded-full bg-gradient-to-br ${isAdmin ? 'from-orange-500/20 to-orange-600/10' : 'from-cyan-500/20 to-cyan-600/10'} flex items-center justify-center">
+                                    <i data-lucide="${isAdmin ? 'shield' : 'user'}" class="w-4 h-4 ${isAdmin ? 'text-orange-400' : 'text-cyan-400'}"></i>
+                                </div>
+                                <div class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-[#0a0a0a]"></div>
+                            </div>
+                            <div>
+                                <p class="text-xs font-mono text-white">${truncate(wallet)}</p>
+                                <p class="text-[10px] text-white/40">${isAdmin ? 'Admin Panel' : 'Dashboard'} • Since ${joinedAt}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] px-2 py-0.5 rounded-full ${isAdmin ? 'bg-orange-500/10 text-orange-400' : 'bg-cyan-500/10 text-cyan-400'}">${isAdmin ? 'Admin' : 'User'}</span>
+                            <button onclick="copyAddr('${wallet}')" class="p-1 rounded hover:bg-white/10 text-white/40 hover:text-white">
+                                <i data-lucide="copy" class="w-3 h-3"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            listEl.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        // --- SETTINGS MANAGEMENT ---
+        let adminSettings = {
+            maintenance: false,
+            autoRevoke: true,
+            logging: true,
+            scanInterval: 10,
+            minConfluence: 55,
+            minVolume: 10000000,
+            maxSymbols: 100,
+            requireSignature: true,
+            sessionDuration: 86400000,
+            defaultRole: 'User',
+            alertNewUser: true,
+            alertTargetHit: true,
+            alertErrors: true
+        };
+
+        // Load settings from localStorage
+        function loadSettings() {
+            const saved = localStorage.getItem('admin_settings');
+            if (saved) {
+                try {
+                    adminSettings = { ...adminSettings, ...JSON.parse(saved) };
+                } catch(e) {}
+            }
+            // Apply to UI
+            applySettingsToUI();
+        }
+
+        function applySettingsToUI() {
+            document.getElementById('setting-maintenance').checked = adminSettings.maintenance;
+            document.getElementById('setting-autorevoke').checked = adminSettings.autoRevoke;
+            document.getElementById('setting-logging').checked = adminSettings.logging;
+            document.getElementById('setting-scan-interval').value = adminSettings.scanInterval;
+            document.getElementById('setting-min-confluence').value = adminSettings.minConfluence;
+            document.getElementById('setting-min-volume').value = adminSettings.minVolume;
+            document.getElementById('setting-max-symbols').value = adminSettings.maxSymbols;
+            document.getElementById('setting-require-sig').checked = adminSettings.requireSignature;
+            document.getElementById('setting-session-duration').value = adminSettings.sessionDuration;
+            document.getElementById('setting-default-role').value = adminSettings.defaultRole;
+            document.getElementById('setting-alert-newuser').checked = adminSettings.alertNewUser;
+            document.getElementById('setting-alert-target').checked = adminSettings.alertTargetHit;
+            document.getElementById('setting-alert-error').checked = adminSettings.alertErrors;
+        }
+
+        function updateSetting(key, value) {
+            adminSettings[key] = value;
+            localStorage.setItem('admin_settings', JSON.stringify(adminSettings));
+            showToast('Setting Updated', `${key} = ${value}`);
+            addActivity('Settings Changed', `Updated ${key} to ${value}`, 'settings', 'text-orange-500');
+        }
+
+        // --- DATABASE ACTIONS ---
+        async function triggerManualScan() {
+            showToast('Scanning...', 'Manual market scan initiated');
+            addActivity('Manual Scan', 'Admin triggered manual market scan', 'scan', 'text-blue-500');
+            
+            try {
+                // Call the scan-market edge function
+                const response = await fetch(`${SUPABASE_URL}/functions/v1/scan-market`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        minConfluence: adminSettings.minConfluence,
+                        maxSymbols: adminSettings.maxSymbols,
+                        minVolume: adminSettings.minVolume
+                    })
+                });
+                
+                if (response.ok) {
+                    showToast('Scan Complete', 'Market scan finished successfully');
+                    addActivity('Scan Complete', 'Market scan completed', 'check-circle', 'text-emerald-500');
+                } else {
+                    throw new Error('Scan failed');
+                }
+            } catch(e) {
+                showToast('Scan Error', 'Failed to complete scan: ' + e.message);
+                addActivity('Scan Error', e.message, 'alert-triangle', 'text-rose-500');
+            }
+        }
+
+        async function exportWallets() {
+            try {
+                const data = await supabaseRequest('whitelist?select=*');
+                const csv = 'wallet_address,role,is_active,expires_at,created_at\n' + 
+                    data.map(w => `${w.wallet_address},${w.role},${w.is_active},${w.expires_at || ''},${w.created_at}`).join('\n');
+                
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `wallets_export_${new Date().toISOString().split('T')[0]}.csv`;
+                a.click();
+                
+                showToast('Export Complete', `Exported ${data.length} wallets to CSV`);
+                addActivity('Data Export', `Exported ${data.length} wallets`, 'download', 'text-blue-500');
+            } catch(e) {
+                showToast('Export Failed', e.message);
+            }
+        }
+
+        async function purgeExpired() {
+            if (!confirm('Are you sure you want to permanently delete all expired wallets?')) return;
+            
+            try {
+                const today = new Date().toISOString();
+                await supabaseRequest(`whitelist?expires_at=lt.${today}&expires_at=not.is.null`, {
+                    method: 'DELETE'
+                });
+                
+                showToast('Purge Complete', 'Expired wallets deleted');
+                addActivity('Purge Expired', 'Deleted all expired wallet entries', 'trash', 'text-rose-500');
+                await loadWallets();
+            } catch(e) {
+                showToast('Purge Failed', e.message);
+            }
+        }
+
+        async function clearOpportunities() {
+            if (!confirm('Are you sure you want to clear all opportunities? This cannot be undone.')) return;
+            
+            try {
+                await supabaseRequest('opportunities?is_active=eq.true', {
+                    method: 'PATCH',
+                    body: { is_active: false }
+                });
+                
+                showToast('Cleared', 'All opportunities deactivated');
+                addActivity('Clear Opportunities', 'Deactivated all active opportunities', 'eraser', 'text-amber-500');
+            } catch(e) {
+                showToast('Clear Failed', e.message);
+            }
+        }
+
+        async function refreshFromSupabase() {
+            showToast('Refreshing...', 'Loading data from Supabase');
+            try {
+                await loadWallets();
+                showToast('Refresh Complete', 'All data reloaded');
+                addActivity('Data Refresh', 'Reloaded all data from Supabase', 'refresh-cw', 'text-blue-500');
+            } catch(e) {
+                showToast('Refresh Failed', e.message);
+            }
+        }
+
+        async function testEdgeFunction() {
+            try {
+                const response = await fetch(`${SUPABASE_URL}/functions/v1/mark-target`, {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    }
+                });
+                
+                if (response.ok) {
+                    showToast('Connection OK', 'Edge Functions are reachable');
+                    addActivity('API Test', 'Edge Functions connection successful', 'check-circle', 'text-emerald-500');
+                } else {
+                    throw new Error('Connection failed');
+                }
+            } catch(e) {
+                showToast('Connection Failed', 'Could not reach Edge Functions');
+                addActivity('API Test', 'Edge Functions connection failed', 'x-circle', 'text-rose-500');
+            }
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text);
+            showToast('Copied', 'Copied to clipboard');
+        }
+
+        // --- WALLET EDITING MODAL ---
+        async function editWallet(id) {
+            const wallet = wallets.find(w => w.id === id);
+            if (!wallet) return;
+
+            const newRole = prompt('Enter new role (User, VIP, Admin):', wallet.role);
+            if (newRole && ['User', 'VIP', 'Admin'].includes(newRole)) {
+                try {
+                    await supabaseRequest(`whitelist?id=eq.${id}`, {
+                        method: 'PATCH',
+                        body: { role: newRole }
+                    });
+                    showToast('Updated', `Changed role to ${newRole}`);
+                    addActivity('Role Change', `Changed ${truncate(wallet.address)} to ${newRole}`, 'edit', 'text-blue-500');
+                    await loadWallets();
+                } catch(e) {
+                    showToast('Update Failed', e.message);
+                }
+            }
+        }
+
+        async function extendExpiry(id) {
+            const wallet = wallets.find(w => w.id === id);
+            if (!wallet) return;
+
+            const days = prompt('Extend expiry by how many days?', '30');
+            if (days && !isNaN(days)) {
+                try {
+                    const currentExpiry = wallet.expiry ? new Date(wallet.expiry) : new Date();
+                    currentExpiry.setDate(currentExpiry.getDate() + parseInt(days));
+                    
+                    await supabaseRequest(`whitelist?id=eq.${id}`, {
+                        method: 'PATCH',
+                        body: { 
+                            expires_at: currentExpiry.toISOString(),
+                            is_active: true
+                        }
+                    });
+                    showToast('Extended', `Expiry extended by ${days} days`);
+                    addActivity('Expiry Extended', `Extended ${truncate(wallet.address)} by ${days} days`, 'calendar-plus', 'text-emerald-500');
+                    await loadWallets();
+                } catch(e) {
+                    showToast('Update Failed', e.message);
+                }
+            }
+        }
+
+        // Initial Load - load from Supabase
+        (async function init() {
+            try {
+                // Load settings first
+                loadSettings();
+                
+                await loadWallets();
+                console.log('✅ Whitelist loaded from Supabase');
+                
+                // Initialize presence tracking after wallets load
+                initPresenceTracking();
+            } catch (e) {
+                console.error('Failed to load whitelist:', e);
+                showToast('Error', 'Failed to load whitelist from database');
+                renderTable(); // Show empty table
+            }
+        })();
+
+        // Display connected wallet
+        (function displayConnectedWallet() {
+            const authData = sessionStorage.getItem('shdwxbt_auth');
+            if (authData) {
+                try {
+                    const auth = JSON.parse(authData);
+                    if (auth.wallet) {
+                        const shortWallet = auth.wallet.slice(0, 6) + '...' + auth.wallet.slice(-4);
+                        document.getElementById('sidebar-wallet').innerText = shortWallet;
+                    }
+                } catch(e) {}
+            }
+        })();
+
+        // Logout function
+        function handleLogout() {
+            const confirmMsg = adminLang === 'zh' ? '确定要断开钱包连接吗？' : 'Are you sure you want to disconnect your wallet?';
+            if (confirm(confirmMsg)) {
+                sessionStorage.removeItem('shdwxbt_auth');
+                window.location.href = 'login.html';
+            }
+        }
+
+        // =====================================================
+        // ADMIN TRANSLATION SYSTEM (EN/ZH)
+        // =====================================================
+        const adminTranslations = {
+            'en': {
+                // Navigation
+                'nav_access_control': 'Access Control',
+                'nav_online_users': 'Online Users',
+                'nav_activity': 'Activity Log',
+                'nav_settings': 'Settings',
+                'nav_admin': 'ADMIN',
+                
+                // Stats
+                'stat_online_now': 'Online Now',
+                'stat_total_active': 'Total Active',
+                'stat_expired': 'Expired Users',
+                'stat_system_status': 'System Status',
+                'stat_users': 'Users',
+                'stat_wallets': 'Wallets',
+                'stat_access_removed': 'Access Removed',
+                'stat_operational': 'Operational',
+                
+                // Table
+                'table_wallet_database': 'Wallet Database',
+                'table_address': 'Address',
+                'table_role': 'Role',
+                'table_expires_on': 'Expires On',
+                'table_status': 'Status',
+                'table_actions': 'Actions',
+                'table_add': 'Add',
+                
+                // Status
+                'status_active': 'Active',
+                'status_expired': 'Expired',
+                'status_inactive': 'Inactive',
+                
+                // Page
+                'page_access_control': 'Access Control',
+                'page_desc': 'Manage authorized wallet addresses and expirations.',
+                'click_to_view': 'Click to view',
+                'live_users_online': 'Live Users Online',
+                'no_users_online': 'No users online',
+                
+                // Actions
+                'confirm_delete': 'Delete this wallet access?',
+                'confirm_logout': 'Are you sure you want to disconnect your wallet?',
+                'copy_address': 'Copy address',
+                'toggle_status': 'Toggle Active',
+                'delete_wallet': 'Delete wallet'
+            },
+            'zh': {
+                // Navigation
+                'nav_access_control': '访问控制',
+                'nav_online_users': '在线用户',
+                'nav_activity': '活动日志',
+                'nav_settings': '设置',
+                'nav_admin': '管理',
+                
+                // Stats
+                'stat_online_now': '当前在线',
+                'stat_total_active': '活跃总数',
+                'stat_expired': '已过期用户',
+                'stat_system_status': '系统状态',
+                'stat_users': '用户',
+                'stat_wallets': '钱包',
+                'stat_access_removed': '访问已移除',
+                'stat_operational': '运行正常',
+                
+                // Table
+                'table_wallet_database': '钱包数据库',
+                'table_address': '地址',
+                'table_role': '角色',
+                'table_expires_on': '过期日期',
+                'table_status': '状态',
+                'table_actions': '操作',
+                'table_add': '添加',
+                
+                // Status
+                'status_active': '活跃',
+                'status_expired': '已过期',
+                'status_inactive': '未激活',
+                
+                // Page
+                'page_access_control': '访问控制',
+                'page_desc': '管理授权的钱包地址和过期时间。',
+                'click_to_view': '点击查看',
+                'live_users_online': '在线用户实时列表',
+                'no_users_online': '没有用户在线',
+                
+                // Actions
+                'confirm_delete': '删除此钱包访问权限？',
+                'confirm_logout': '确定要断开钱包连接吗？',
+                'copy_address': '复制地址',
+                'toggle_status': '切换状态',
+                'delete_wallet': '删除钱包'
+            }
+        };
+
+        let adminLang = localStorage.getItem('shdwxbt_lang') || 'en';
+
+        function tAdmin(key) {
+            return adminTranslations[adminLang]?.[key] || adminTranslations['en']?.[key] || key;
+        }
+
+        function toggleAdminLanguage() {
+            adminLang = adminLang === 'en' ? 'zh' : 'en';
+            localStorage.setItem('shdwxbt_lang', adminLang);
+            updateAdminLanguageUI();
+        }
+
+        function updateAdminLanguageUI() {
+            // Update toggle button
+            const langFlag = document.getElementById('lang-flag');
+            const langCode = document.getElementById('lang-code');
+            if (langFlag) langFlag.textContent = adminLang === 'en' ? '🇺🇸' : '🇨🇳';
+            if (langCode) langCode.textContent = adminLang.toUpperCase();
+
+            // Update all elements with data-admin-key
+            document.querySelectorAll('[data-admin-key]').forEach(el => {
+                const key = el.getAttribute('data-admin-key');
+                const translation = adminTranslations[adminLang]?.[key];
+                if (translation) {
+                    el.textContent = translation;
+                }
+            });
+
+            // Update page title
+            const pageTitle = document.getElementById('page-title');
+            if (pageTitle) pageTitle.textContent = tAdmin('page_access_control');
+
+            // Update system status text
+            const systemStatusText = document.getElementById('system-status-text');
+            if (systemStatusText) systemStatusText.textContent = tAdmin('stat_operational');
+        }
+
+        // Initialize language on load
+        updateAdminLanguageUI();
+    </script>
+
+</body></html>

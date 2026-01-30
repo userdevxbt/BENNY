@@ -1,0 +1,50 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# SHDWXBT - robots.txt
+# Bloqueia indexação e crawlers
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Bloquear todos os bots
+User-agent: *
+Disallow: /
+
+# Bloquear especificamente arquivos JS
+User-agent: *
+Disallow: /*.js$
+Disallow: /*.json$
+
+# Bloquear GPTBot (OpenAI)
+User-agent: GPTBot
+Disallow: /
+
+# Bloquear Google-Extended (Bard)
+User-agent: Google-Extended
+Disallow: /
+
+# Bloquear CCBot (Common Crawl para IA)
+User-agent: CCBot
+Disallow: /
+
+# Bloquear ChatGPT-User
+User-agent: ChatGPT-User
+Disallow: /
+
+# Bloquear Anthropic
+User-agent: anthropic-ai
+Disallow: /
+
+# Bloquear Claude
+User-agent: ClaudeBot
+Disallow: /
+
+# Bloquear outros crawlers de IA
+User-agent: cohere-ai
+Disallow: /
+
+User-agent: PerplexityBot
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+# Sem sitemap
+# Sitemap: (none)

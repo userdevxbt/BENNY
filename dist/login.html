@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BENNY | $BENNY Terminal Access</title>
+
+    <!-- Security Headers -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+
+    <!-- 🛡️ Security Shield - MUST LOAD FIRST -->
+    <script src="security-shield.js"></script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Scripts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+    
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Ethers.js v5 (UMD) -->
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    <!-- WalletConnect Provider (UMD) -->
+    <script src="https://unpkg.com/@walletconnect/ethereum-provider@2.11.2/dist/index.umd.js"></script>
+    <!-- Wallet Connectors -->
+    <script src="wallet-connectors.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'spin-slow': 'spin 12s linear infinite',
+                        'scan': 'scan 10s linear infinite',
+                    },
+                    keyframes: {
+                        scan: {
+                            '0%': { bottom: '100%' },
+                            '100%': { bottom: '-100%' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #050505;
+            color: #fff;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Language Toggle */
+        .lang-toggle {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 9999;
+            background: rgba(15, 15, 15, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 6px 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #fff;
+            transition: all 0.2s;
+        }
+        .lang-toggle:hover {
+            border-color: rgba(239, 68, 68, 0.5);
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .noise-bg {
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+            mix-blend-mode: overlay;
+        }
+
+        .scanline {
+            width: 100%;
+            height: 100px;
+            z-index: 10;
+            background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(255, 0, 0, 0.1) 50%, rgba(0,0,0,0) 100%);
+            opacity: 0.1;
+            position: absolute;
+            bottom: 100%;
+            animation: scan 10s linear infinite;
+        }
+
+        @keyframes scan {
+            0% { bottom: 100%; }
+            100% { bottom: -100%; }
+        }
+
+        .benny-token-glow {
+            box-shadow: 0 0 60px rgba(239, 68, 68, 0.3), 
+                        0 0 120px rgba(239, 68, 68, 0.2),
+                        inset 0 0 30px rgba(239, 68, 68, 0.4);
+        }
+
+        .wallet-btn {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .wallet-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .wallet-btn.selected {
+            border-color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        /* Orbit rings */
+        .orbit-ring {
+            border: 1px dashed rgba(239, 68, 68, 0.2);
+            border-radius: 50%;
+            position: absolute;
+        }
+
+        /* ====== WALLET MODAL ====== */
+        .wallet-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 999999;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        .wallet-modal.active {
+            display: flex !important;
+        }
+
+        .wallet-container {
+            max-width: 480px;
+            width: 92%;
+            background: rgba(15, 15, 15, 0.95);
+            backdrop-filter: blur(40px);
+            border-radius: 1.5rem;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            padding: 2rem;
+            position: relative;
+        }
+
+        .wallet-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.875rem;
+        }
+
+        .wallet-option {
+            padding: 1.25rem 1rem;
+            background: rgba(39, 39, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .wallet-option:hover {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.3);
+            transform: translateY(-4px);
+        }
+
+        .wallet-icon {
+            width: 52px;
+            height: 52px;
+            margin: 0 auto 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 0.875rem;
+        }
+
+        .wallet-name {
+            color: white;
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 0.2rem;
+        }
+
+        .wallet-desc {
+            color: rgba(161, 161, 170, 0.8);
+            font-size: 0.75rem;
+        }
+
+        .wallet-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(39, 39, 42, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .wallet-close:hover {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: rgba(239, 68, 68, 0.5);
+            color: #f87171;
+        }
+
+        .wallet-connect-option {
+            background: linear-gradient(135deg, rgba(30, 58, 95, 0.8) 0%, rgba(39, 39, 42, 0.8) 100%);
+            border: 1px solid rgba(59, 153, 252, 0.35);
+            grid-column: span 2;
+        }
+
+        @media (max-width: 480px) {
+            .wallet-grid {
+                grid-template-columns: 1fr;
+            }
+            .wallet-connect-option {
+                grid-column: span 1;
+            }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen relative selection:bg-red-500/30 selection:text-white overflow-x-hidden font-sans">
+
+    <!-- Language Toggle Button -->
+    <button id="lang-toggle" class="lang-toggle" onclick="toggleLanguage()">
+        <span id="lang-flag">🇺🇸</span>
+        <span id="lang-code">EN</span>
+    </button>
+
+    <!-- ====== WALLET SELECTION MODAL ====== -->
+    <div id="walletModal" class="wallet-modal">
+        <div class="wallet-container">
+            <div class="wallet-close" onclick="cancelWalletConnection()">✕</div>
+            
+            <div class="text-center mb-6">
+                <h3 class="text-xl font-bold text-white flex items-center justify-center gap-2">
+                    <iconify-icon icon="solar:fire-bold" class="text-red-500"></iconify-icon>
+                    <span data-key="modal_connect_title">Connect to BENNY</span>
+                </h3>
+                <p class="text-zinc-400 text-sm mt-1" data-key="modal_choose_wallet">Choose your wallet</p>
+            </div>
+            
+            <div class="wallet-grid">
+                <div class="wallet-option" onclick="handleWalletSelection(connectMetaMask)">
+                    <div class="wallet-icon">
+                        <iconify-icon icon="logos:metamask-icon" width="36"></iconify-icon>
+                    </div>
+                    <div class="wallet-name">MetaMask</div>
+                    <div class="wallet-desc" data-key="wallet_browser_ext">Browser Extension</div>
+                </div>
+                
+                <div class="wallet-option" onclick="handleWalletSelection(connectTrust)">
+                    <div class="wallet-icon">
+                        <iconify-icon icon="logos:trust-wallet-icon" width="36"></iconify-icon>
+                    </div>
+                    <div class="wallet-name">Trust Wallet</div>
+                    <div class="wallet-desc" data-key="wallet_mobile_app">Mobile App</div>
+                </div>
+                
+                <div class="wallet-option wallet-connect-option" onclick="handleWalletSelection(connectWalletConnect)">
+                    <div class="wallet-icon" style="background: rgba(59, 153, 252, 0.15);">
+                        <iconify-icon icon="logos:walletconnect-icon" width="36"></iconify-icon>
+                    </div>
+                    <div class="wallet-name">WalletConnect</div>
+                    <div class="wallet-desc" data-key="wallet_300_wallets">300+ Wallets</div>
+                </div>
+                
+                <div class="wallet-option" onclick="handleWalletSelection(connectInjected)" id="anyWalletOption" style="display: none;">
+                    <div class="wallet-icon">
+                        <iconify-icon icon="solar:wallet-bold" width="36" class="text-purple-400"></iconify-icon>
+                    </div>
+                    <div class="wallet-name" data-key="wallet_any">Any Wallet</div>
+                    <div class="wallet-desc" data-key="wallet_in_app">In-App Browser</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Video Background -->
+    <div class="fixed inset-0 z-0 select-none pointer-events-none">
+        <video id="bg-video" class="w-full h-full object-cover grayscale opacity-20" autoplay muted loop playsinline></video>
+        <div class="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/90 to-[#050505]/80"></div>
+        <div class="absolute inset-0 noise-bg z-10"></div>
+        <div class="scanline pointer-events-none"></div>
+    </div>
+
+    <!-- ======================= LOGIN SCREEN ======================= -->
+    <div class="fixed flex z-50 p-2 md:p-4 inset-0 items-center justify-center" id="login-screen">
+        
+        <div class="w-full max-w-5xl h-auto md:h-[600px] min-h-[500px] flex flex-col md:flex-row rounded-xl md:rounded-2xl overflow-hidden border border-white/10 bg-[#09090b] shadow-[0_0_100px_-20px_rgba(0,0,0,1)] relative">
+            
+            <!-- Decorative Border corners -->
+            <div class="absolute top-0 left-0 w-12 h-12 md:w-20 md:h-20 border-t-2 border-l-2 border-red-600 z-20 rounded-tl-xl md:rounded-tl-2xl"></div>
+            <div class="absolute bottom-0 right-0 w-12 h-12 md:w-20 md:h-20 border-b-2 border-r-2 border-red-600 z-20 rounded-br-xl md:rounded-br-2xl"></div>
+
+            <!-- Left: BENNY Visuals -->
+            <div class="w-full md:w-1/2 relative hidden md:flex items-center justify-center overflow-hidden bg-gradient-to-br from-red-950/20 to-black md:border-r border-white/5">
+                
+                <!-- Orbit rings -->
+                <div class="orbit-ring w-[300px] h-[300px] animate-spin-slow" style="animation-duration: 20s;"></div>
+                <div class="orbit-ring w-[400px] h-[400px] animate-spin-slow" style="animation-duration: 30s; animation-direction: reverse;"></div>
+                
+                <!-- BENNY Token -->
+                <div class="relative z-10 flex flex-col items-center">
+                    <div class="w-32 h-32 md:w-40 md:h-40 rounded-full flex items-center justify-center relative p-3 md:p-4">
+                        <img src="https://i.ibb.co/27kB19BM/photo-2026-01-27-18-04-37.jpg" alt="BENNY" class="w-full h-full object-contain hover:scale-110 transition-transform duration-300" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E🐕%3C/text%3E%3C/svg%3E'" />
+                    </div>
+                    <span class="mt-3 md:mt-4 text-white font-bold text-lg md:text-xl tracking-wider">BENNY</span>
+                </div>
+
+                <!-- Contract Address -->
+                <div class="absolute bottom-4 md:bottom-8 left-0 right-0 px-4 md:px-6">
+                    <div class="text-center mb-2">
+                        <span class="text-[9px] md:text-[10px] font-mono text-zinc-500 uppercase tracking-widest" data-key="contract_address">Contract Address</span>
+                    </div>
+                    <div class="bg-red-500/10 border border-red-500/30 rounded-lg py-1.5 md:py-2 px-3 md:px-4">
+                        <p class="text-red-400 font-mono text-[10px] md:text-xs text-center truncate">CA: 0x15beb38dc7ebeb07424f9fcba6f0701547bf4444</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Login Form -->
+            <div class="flex-1 flex flex-col p-6 md:p-8 lg:p-12 relative justify-center">
+                
+                <!-- $BENNY badge top right -->
+                <div class="absolute top-4 md:top-8 right-4 md:right-8">
+                    <span class="text-xl md:text-2xl font-bold text-zinc-700 italic">$BENNY</span>
+                </div>
+
+                <!-- Header -->
+                <div class="mb-6 md:mb-8">
+                    <div class="flex items-center gap-2 mb-2 md:mb-3">
+                        <span class="w-1.5 h-1.5 md:w-2 md:h-2 bg-red-500 rounded-full animate-pulse"></span>
+                        <span class="text-[9px] md:text-[10px] font-mono text-red-500 tracking-[0.2em] uppercase" data-key="wallet_access">Wallet Access</span>
+                    </div>
+                    <h1 class="text-2xl md:text-3xl font-bold text-white mb-2" data-key="connect_wallet_title">Connect Wallet</h1>
+                    <p class="text-xs md:text-sm text-zinc-500 font-mono" data-key="connect_wallet_desc">Establish secure connection to $BENNY Terminal.</p>
+                </div>
+
+                <!-- Wallet Buttons -->
+                <div class="space-y-2.5 md:space-y-3">
+                    <button onclick="handleWalletConnect('metamask')" class="w-full h-12 md:h-14 wallet-btn border border-white/10 bg-black/40 rounded-lg flex items-center justify-between px-3 md:px-4 group">
+                        <div class="flex items-center gap-2 md:gap-3">
+                            <iconify-icon icon="logos:metamask-icon" class="text-xl md:text-2xl"></iconify-icon>
+                            <span class="text-xs md:text-sm font-mono font-medium text-white group-hover:text-red-400 transition-colors">MetaMask</span>
+                        </div>
+                        <div class="w-2 h-2 rounded-full bg-zinc-700 group-hover:bg-green-500 transition-colors"></div>
+                    </button>
+                    
+                    <button onclick="handleWalletConnect('trust')" class="w-full h-14 wallet-btn border border-white/10 bg-black/40 rounded-lg flex items-center justify-between px-4 group">
+                        <div class="flex items-center gap-3">
+                            <iconify-icon icon="logos:trust-wallet-icon" class="text-2xl"></iconify-icon>
+                            <span class="text-sm font-mono font-medium text-white group-hover:text-red-400 transition-colors">Trust Wallet</span>
+                        </div>
+                        <div class="w-2 h-2 rounded-full bg-zinc-700 group-hover:bg-green-500 transition-colors"></div>
+                    </button>
+
+                    <button onclick="handleWalletConnect('wc')" class="w-full h-14 wallet-btn border border-white/10 bg-black/40 rounded-lg flex items-center justify-between px-4 group">
+                        <div class="flex items-center gap-3">
+                            <iconify-icon icon="logos:walletconnect-icon" class="text-2xl"></iconify-icon>
+                            <span class="text-sm font-mono font-medium text-white group-hover:text-red-400 transition-colors">WalletConnect</span>
+                        </div>
+                        <div class="w-2 h-2 rounded-full bg-zinc-700 group-hover:bg-green-500 transition-colors"></div>
+                    </button>
+                </div>
+
+                <!-- Status Message -->
+                <div id="connection-status" class="hidden mt-4 p-3 rounded bg-red-500/10 border border-red-500/20 text-center">
+                    <div class="flex items-center justify-center gap-2 text-xs font-mono text-red-400">
+                        <iconify-icon icon="line-md:loading-twotone-loop" class="text-lg"></iconify-icon>
+                        <span id="status-text" data-key="status_init">INITIALIZING HANDSHAKE...</span>
+                    </div>
+                </div>
+
+                <!-- Feedback Message -->
+                <div id="feedback-msg" class="h-4 mt-4 text-[10px] font-mono text-center text-transparent transition-colors duration-300">.</div>
+
+                <!-- Footer -->
+                <div class="mt-auto pt-6 border-t border-white/5 flex justify-between items-center text-[10px] font-mono text-zinc-600">
+                    <span data-key="encrypted_rpc">ENCRYPTED RPC</span>
+                    <span class="flex items-center gap-1">
+                        <iconify-icon icon="solar:shield-check-bold" class="text-zinc-600"></iconify-icon> <span data-key="secure">SECURE</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =====================================================
+        // CONFIGURATION
+        // =====================================================
+        const SUPABASE_URL = 'https://dbxzwynknesxuvtlissd.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRieHp3eW5rbmVzeHV2dGxpc3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg4MDY0OTYsImV4cCI6MjA4NDM4MjQ5Nn0.far-1warbl3rI1oWyJy9h4O8ZmMxfhi38LRDNXQZ9v8';
+        const FUNCTIONS_BASE = `${SUPABASE_URL}/functions/v1`;
+
+        // Initialize Supabase Client
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // --- DOM Elements ---
+        const feedback = document.getElementById('feedback-msg');
+        const connectionStatus = document.getElementById('connection-status');
+        const statusText = document.getElementById('status-text');
+
+        // Background Video Logic
+        const video = document.getElementById('bg-video');
+        const videoSrc = 'https://customer-cbeadsgr09pnsezs.cloudflarestream.com/b17f76a1270818e8cdc55e8719b9ace8/manifest/video.m3u8';
+
+        if (Hls.isSupported()) {
+            const hls = new Hls({ enableWorker: true, lowLatencyMode: true });
+            hls.loadSource(videoSrc);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = videoSrc;
+            video.addEventListener('loadedmetadata', () => video.play());
+        }
+
+        // Wallet Modal Functions
+        if (typeof window.openWalletModal === 'undefined') {
+            window.openWalletModal = function() {
+                const modal = document.getElementById('walletModal');
+                if (modal) modal.classList.add('active');
+            };
+        }
+        if (typeof window.closeWalletModal === 'undefined') {
+            window.closeWalletModal = function() {
+                const modal = document.getElementById('walletModal');
+                if (modal) modal.classList.remove('active');
+            };
+        }
+        if (typeof window.cancelWalletConnection === 'undefined') {
+            window.cancelWalletConnection = function() {
+                const modal = document.getElementById('walletModal');
+                if (modal) modal.classList.remove('active');
+                if (window.walletConnectionPromise) {
+                    window.walletConnectionPromise.reject(new Error('Connection cancelled'));
+                    window.walletConnectionPromise = null;
+                }
+            };
+        }
+
+        // Check libraries
+        function checkLibraries() {
+            console.log('🔄 Checking libraries...');
+            console.log('Ethers.js loaded:', typeof ethers !== 'undefined');
+            console.log('Supabase loaded:', typeof supabase !== 'undefined');
+            
+            if (typeof ethers === 'undefined') {
+                console.error('❌ Ethers.js failed to load');
+                feedback.innerText = t('error_loading_wallet');
+                feedback.classList.remove('text-transparent');
+                feedback.classList.add('text-rose-400');
+            } else {
+                console.log('✅ All libraries loaded successfully');
+                checkPersistentSession();
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', checkLibraries);
+        } else {
+            checkLibraries();
+        }
+        
+        // Check for persistent session (mobile auto-login)
+        async function checkPersistentSession() {
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+            
+            if (!isMobile && !isPWA) return;
+            
+            try {
+                const sessionStr = localStorage.getItem('shdwxbt_session');
+                if (!sessionStr) return;
+                
+                const session = JSON.parse(sessionStr);
+                const expiresAt = new Date(session.expiresAt).getTime();
+                
+                if (Date.now() > expiresAt) {
+                    localStorage.removeItem('shdwxbt_session');
+                    return;
+                }
+                
+                const daysRemaining = Math.ceil((expiresAt - Date.now()) / (24 * 60 * 60 * 1000));
+                
+                sessionStorage.setItem('shdwxbt_auth', JSON.stringify({
+                    wallet: session.address,
+                    authenticated: true,
+                    timestamp: Date.now(),
+                    role: session.role || 'User',
+                    verified: true,
+                    isPersistent: true
+                }));
+                
+                connectionStatus.classList.remove('hidden');
+                statusText.innerText = `${t('status_session_restored')} ${daysRemaining} ${t('status_days_remaining')}...`;
+                connectionStatus.classList.remove('bg-red-500/10', 'border-red-500/20');
+                connectionStatus.classList.add('bg-emerald-500/10', 'border-emerald-500/20');
+                connectionStatus.querySelector('.text-red-400')?.classList.remove('text-red-400');
+                connectionStatus.querySelector('.text-red-400')?.classList.add('text-emerald-400');
+                
+                const targetPage = session.role === 'Admin' ? 'admin.html' : 'dashboard.html';
+                setTimeout(() => {
+                    window.location.href = targetPage;
+                }, 1000);
+            } catch (e) {
+                console.error('Error processing persistent session:', e);
+            }
+        }
+
+        // =====================================================
+        // BACKEND AUTHENTICATION FUNCTIONS
+        // =====================================================
+
+        async function getNonce(address) {
+            const response = await fetch(`${FUNCTIONS_BASE}/auth-nonce`, {
+                method: "POST",
+                headers: { 
+                    "Content-Type": "application/json",
+                    "apikey": SUPABASE_ANON_KEY,
+                    "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
+                },
+                body: JSON.stringify({ address }),
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || "nonce_failed");
+            }
+            return data.nonce;
+        }
+
+        async function verifyOnBackend(address, message, signature) {
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            const deviceInfo = `${navigator.userAgent}|${screen.width}x${screen.height}|${navigator.language}`;
+            
+            const response = await fetch(`${FUNCTIONS_BASE}/auth-verify`, {
+                method: "POST",
+                headers: { 
+                    "Content-Type": "application/json",
+                    "apikey": SUPABASE_ANON_KEY,
+                    "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
+                },
+                body: JSON.stringify({ 
+                    address, 
+                    message, 
+                    signature,
+                    isMobile: isMobile,
+                    deviceInfo: deviceInfo,
+                    createSession: true
+                }),
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || "verify_failed");
+            }
+            return data;
+        }
+
+        async function signMessage(address, message) {
+            if (window.currentSigner) {
+                return await window.currentSigner.signMessage(message);
+            }
+
+            const p = window.currentProvider?.request ? window.currentProvider : window.ethereum;
+            if (!p?.request) {
+                throw new Error("No signing provider available");
+            }
+
+            return await p.request({
+                method: "personal_sign",
+                params: [message, address]
+            });
+        }
+
+        // =====================================================
+        // WALLET CONNECTION
+        // =====================================================
+
+        async function requestWallet(walletType) {
+            return new Promise((resolve, reject) => {
+                window.walletConnectionPromise = { resolve, reject };
+                
+                // Direct connection based on wallet type
+                if (walletType === 'metamask') {
+                    if (typeof connectMetaMask === 'function') {
+                        handleWalletSelection(connectMetaMask);
+                    } else {
+                        openWalletModal();
+                    }
+                } else if (walletType === 'trust') {
+                    if (typeof connectTrust === 'function') {
+                        handleWalletSelection(connectTrust);
+                    } else {
+                        openWalletModal();
+                    }
+                } else if (walletType === 'wc') {
+                    if (typeof connectWalletConnect === 'function') {
+                        handleWalletSelection(connectWalletConnect);
+                    } else {
+                        openWalletModal();
+                    }
+                } else {
+                    openWalletModal();
+                }
+            });
+        }
+
+        function shortenAddress(address) {
+            if (!address) return '0x...';
+            return address.slice(0, 6) + '...' + address.slice(-4);
+        }
+
+        // =====================================================
+        // MAIN AUTHENTICATION HANDLER
+        // =====================================================
+
+        async function handleWalletConnect(walletType) {
+            const buttons = document.querySelectorAll('.wallet-btn');
+            
+            // Visual selection
+            buttons.forEach(btn => btn.classList.remove('selected', 'border-red-500', 'bg-red-500/10'));
+            event.currentTarget.classList.add('selected');
+            
+            try {
+                // Step 1: Connect Wallet
+                connectionStatus.classList.remove('hidden');
+                statusText.innerText = t('status_requesting');
+
+                const address = (await requestWallet(walletType)).toLowerCase();
+                
+                if (!address) {
+                    connectionStatus.classList.add('hidden');
+                    return;
+                }
+                
+                console.log('Connected address:', address);
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                // Step 2: Get nonce
+                statusText.innerText = t('status_signature');
+                const nonce = await getNonce(address);
+                console.log('✅ Nonce received:', nonce);
+
+                // Step 3: Get chain ID
+                const p = window.currentProvider?.request ? window.currentProvider : window.ethereum;
+                if (!p || !p.request) {
+                    throw new Error('Wallet provider not available');
+                }
+                const chainIdHex = await p.request({ method: "eth_chainId" });
+                const chainId = parseInt(chainIdHex, 16);
+
+                // Step 4: Build SIWE message
+                const domain = window.location.host;
+                const uri = window.location.origin;
+                const issuedAt = new Date().toISOString();
+
+                const message = `${domain} wants you to sign in with your Ethereum account:
+${address}
+
+Sign in to BENNY Terminal
+
+URI: ${uri}
+Version: 1
+Chain ID: ${chainId}
+Nonce: ${nonce}
+Issued At: ${issuedAt}`;
+
+                // Step 5: Request signature
+                statusText.innerText = t('status_sign_wallet');
+                const signature = await signMessage(address, message);
+                console.log('✅ Signature received');
+
+                // Step 6: Verify on backend
+                statusText.innerText = t('status_verifying');
+                const result = await verifyOnBackend(address, message, signature);
+                console.log('✅ Backend verification result:', result);
+
+                // Step 7: Grant access - BENNY is now PUBLIC! 🎉
+                if (result.ok) {
+                    grantAccess(address, result.role, signature, result);
+                } else {
+                    // Only deny if backend verification failed
+                    denyAccess(result);
+                }
+
+            } catch (err) {
+                console.error('Authentication error:', err);
+                connectionStatus.classList.add('hidden');
+                
+                let errorMsg = err.message || 'Connection failed';
+                
+                // Traduzir mensagens de erro comuns
+                if (err.message.includes('rejected') || err.message.includes('denied') || err.code === 4001) {
+                    errorMsg = t('error_signature_rejected');
+                } else if (err.message.includes('cancelled')) {
+                    errorMsg = t('error_connection_cancelled');
+                } else if (err.message.includes('Nonce not found') || err.message.includes('expired nonce') || err.message.includes('Nonce expired')) {
+                    errorMsg = 'Session expired. Please try again.';
+                    console.log('🔄 Nonce expired - user should retry');
+                } else if (err.message.includes('invalid message') || err.message.includes('Malformed')) {
+                    errorMsg = 'Invalid message format. Please try again.';
+                    console.log('🔄 Message format issue - user should retry');
+                }
+                
+                feedback.innerText = errorMsg;
+                feedback.classList.remove('text-transparent');
+                feedback.classList.add('text-rose-400');
+                
+                buttons.forEach(btn => btn.classList.remove('selected'));
+                
+                setTimeout(() => {
+                    feedback.classList.add('text-transparent');
+                    feedback.classList.remove('text-rose-400');
+                }, 4000);
+            }
+        }
+        window.handleWalletConnect = handleWalletConnect;
+
+        // =====================================================
+        // ACCESS CONTROL
+        // =====================================================
+
+        function grantAccess(wallet, role, signature, backendResult) {
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            
+            const authData = {
+                wallet: wallet,
+                authenticated: true,
+                timestamp: Date.now(),
+                role: role || 'User',
+                signature: signature,
+                verified: true,
+                verifiedAt: new Date().toISOString()
+            };
+            sessionStorage.setItem('shdwxbt_auth', JSON.stringify(authData));
+            
+            // Mobile: save persistent session with trial info
+            if (isMobile) {
+                const persistentSession = {
+                    token: backendResult?.sessionToken || `local_${Date.now()}_${Math.random().toString(36).substr(2, 16)}`,
+                    address: wallet,
+                    role: role || 'User',
+                    whitelisted: backendResult?.whitelisted || false,
+                    isTrial: backendResult?.isTrial || false,
+                    trialDaysRemaining: backendResult?.trialDaysRemaining || 0,
+                    expiresAt: backendResult?.sessionExpiresAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                    savedAt: new Date().toISOString(),
+                    isLocalOnly: !backendResult?.sessionToken,
+                    signature: signature
+                };
+                
+                try {
+                    localStorage.setItem('shdwxbt_session', JSON.stringify(persistentSession));
+                } catch (storageErr) {
+                    console.error('Error saving session:', storageErr);
+                }
+            }
+            
+            const isAdmin = role === 'Admin';
+            const targetPage = isAdmin ? 'admin.html' : 'dashboard.html';
+            
+            // BENNY é agora público - sempre mostrar acesso concedido
+            statusText.innerText = t('status_access_granted');
+            
+            connectionStatus.classList.remove('bg-red-500/10', 'border-red-500/20');
+            connectionStatus.classList.add('bg-emerald-500/10', 'border-emerald-500/20');
+            const statusSpan = connectionStatus.querySelector('.text-red-400');
+            if (statusSpan) {
+                statusSpan.classList.remove('text-red-400');
+                statusSpan.classList.add('text-emerald-400');
+            }
+            
+            feedback.innerText = t('feedback_verified');
+            feedback.classList.remove('text-transparent');
+            feedback.classList.add('text-emerald-400');
+            
+            setTimeout(() => {
+                window.location.href = targetPage;
+            }, 1500);
+        }
+
+        function denyAccess(result) {
+            // 🎉 BENNY is PUBLIC - This should rarely happen now
+            // Only if backend verification actually failed
+            statusText.innerText = 'Verification Error';
+            connectionStatus.classList.remove('bg-red-500/10', 'border-red-500/20');
+            connectionStatus.classList.add('bg-rose-500/10', 'border-rose-500/20');
+            
+            // Mensagem genérica - BENNY é público, então deve ser erro técnico
+            let message = result?.error || 'Please try again';
+            
+            feedback.innerText = message;
+            feedback.classList.remove('text-transparent');
+            feedback.classList.add('text-rose-400');
+            
+            const buttons = document.querySelectorAll('.wallet-btn');
+            
+            setTimeout(() => {
+                connectionStatus.classList.add('hidden');
+                connectionStatus.classList.remove('bg-rose-500/10', 'border-rose-500/20');
+                connectionStatus.classList.add('bg-red-500/10', 'border-red-500/20');
+                feedback.classList.add('text-transparent');
+                feedback.classList.remove('text-rose-400');
+                buttons.forEach(btn => btn.classList.remove('selected'));
+            }, 3000);
+        }
+
+        // =====================================================
+        // MOBILE HANDLING
+        // =====================================================
+
+        function updateWalletOptionsForDevice() {
+            const anyWalletOption = document.getElementById('anyWalletOption');
+            
+            if (anyWalletOption) {
+                if (window.isMobile && window.isMobile()) {
+                    anyWalletOption.style.display = 'block';
+                } else {
+                    anyWalletOption.style.display = 'none';
+                }
+            }
+        }
+        
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', updateWalletOptionsForDevice);
+        } else {
+            updateWalletOptionsForDevice();
+        }
+
+        console.log('BENNY Terminal Login page loaded (Secure SIWE Authentication)');
+
+        // =====================================================
+        // TRANSLATION SYSTEM (EN/ZH)
+        // =====================================================
+        const loginTranslations = {
+            'en': {
+                // Modal
+                'modal_connect_title': 'Connect to BENNY',
+                'modal_choose_wallet': 'Choose your wallet',
+                'wallet_browser_ext': 'Browser Extension',
+                'wallet_mobile_app': 'Mobile App',
+                'wallet_300_wallets': '300+ Wallets',
+                'wallet_any': 'Any Wallet',
+                'wallet_in_app': 'In-App Browser',
+                
+                // Login Form
+                'contract_address': 'Contract Address',
+                'wallet_access': 'Wallet Access',
+                'connect_wallet_title': 'Connect Wallet',
+                'connect_wallet_desc': 'Establish secure connection to $BENNY Terminal.',
+                'encrypted_rpc': 'ENCRYPTED RPC',
+                'secure': 'SECURE',
+                
+                // Status Messages
+                'status_init': 'INITIALIZING HANDSHAKE...',
+                'status_requesting': 'REQUESTING WALLET CONNECTION...',
+                'status_signature': 'REQUESTING SIGNATURE...',
+                'status_sign_wallet': 'SIGN MESSAGE IN WALLET...',
+                'status_verifying': 'VERIFYING ASSETS...',
+                'status_access_granted': 'ACCESS GRANTED',
+                'status_access_denied': 'ACCESS DENIED',
+                'status_trial': 'TRIAL ACCESS',
+                'status_days_remaining': 'DAYS REMAINING',
+                'status_session_restored': 'Session restored!',
+                
+                // Errors
+                'error_signature_rejected': 'Signature rejected by user',
+                'error_connection_cancelled': 'Connection cancelled',
+                'error_wallet_not_auth': 'Wallet address not authorized.',
+                'error_trial_expired': 'Trial period expired. Contact admin for permanent access.',
+                'error_trial_not_available': 'Trial not available. Contact admin for access.',
+                'error_loading_wallet': 'Error loading wallet library. Please refresh.',
+                
+                // Feedback
+                'feedback_verified': 'Verified! Redirecting...'
+            },
+            'zh': {
+                // Modal
+                'modal_connect_title': '连接到 BENNY',
+                'modal_choose_wallet': '选择您的钱包',
+                'wallet_browser_ext': '浏览器扩展',
+                'wallet_mobile_app': '移动应用',
+                'wallet_300_wallets': '300+ 钱包',
+                'wallet_any': '任何钱包',
+                'wallet_in_app': '应用内浏览器',
+                
+                // Login Form
+                'contract_address': '合约地址',
+                'wallet_access': '钱包访问',
+                'connect_wallet_title': '连接钱包',
+                'connect_wallet_desc': '建立与 $BENNY 终端的安全连接。',
+                'encrypted_rpc': '加密RPC',
+                'secure': '安全',
+                
+                // Status Messages
+                'status_init': '正在初始化握手...',
+                'status_requesting': '正在请求钱包连接...',
+                'status_signature': '正在请求签名...',
+                'status_sign_wallet': '请在钱包中签名...',
+                'status_verifying': '正在验证资产...',
+                'status_access_granted': '访问已授权',
+                'status_access_denied': '访问被拒绝',
+                'status_trial': '试用访问',
+                'status_days_remaining': '剩余天数',
+                'status_session_restored': '会话已恢复！',
+                
+                // Errors
+                'error_signature_rejected': '用户拒绝签名',
+                'error_connection_cancelled': '连接已取消',
+                'error_wallet_not_auth': '钱包地址未授权。',
+                'error_trial_expired': '试用期已过期。请联系管理员获取永久访问权限。',
+                'error_trial_not_available': '试用不可用。请联系管理员获取访问权限。',
+                'error_loading_wallet': '加载钱包库时出错。请刷新页面。',
+                
+                // Feedback
+                'feedback_verified': '已验证！正在跳转...'
+            }
+        };
+
+        let currentLang = localStorage.getItem('shdwxbt_lang') || 'en';
+
+        function t(key) {
+            return loginTranslations[currentLang]?.[key] || loginTranslations['en']?.[key] || key;
+        }
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'en' ? 'zh' : 'en';
+            localStorage.setItem('shdwxbt_lang', currentLang);
+            updateLanguageUI();
+        }
+
+        function updateLanguageUI() {
+            // Update toggle button
+            const langFlag = document.getElementById('lang-flag');
+            const langCode = document.getElementById('lang-code');
+            if (langFlag) langFlag.textContent = currentLang === 'en' ? '🇺🇸' : '🇨🇳';
+            if (langCode) langCode.textContent = currentLang.toUpperCase();
+
+            // Update all elements with data-key
+            document.querySelectorAll('[data-key]').forEach(el => {
+                const key = el.getAttribute('data-key');
+                const translation = loginTranslations[currentLang]?.[key] || loginTranslations['en']?.[key];
+                if (translation) {
+                    el.textContent = translation;
+                }
+            });
+        }
+
+        // Initialize language on load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', updateLanguageUI);
+        } else {
+            updateLanguageUI();
+        }
+    </script>
+
+</body>
+</html>
